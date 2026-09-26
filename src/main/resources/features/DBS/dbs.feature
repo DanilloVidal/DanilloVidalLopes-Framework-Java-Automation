@@ -14,6 +14,7 @@ Scenario: DBS Login Page
     And I click Yes for the farm
     Then the selected farm should be "big chicken farm edited"
     When I select the farm testing option
+    And I select the analysis purpose "Customer service"
     And I click Next
     And I click the plus button 7 times
     And I click the minus button 4 times

@@ -5,11 +5,12 @@ import com.automation.framework.infrastructure.config.LoginCredentials;
 import com.automation.framework.infrastructure.driver.DriverFactory;
 import com.automation.framework.presentation.actions.dbs.DbsActions;
 import org.openqa.selenium.By;
+import org.openqa.selenium.ElementClickInterceptedException;
 import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.Keys;
+import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.WebDriverException;
 
 import java.util.List;
 
@@ -37,6 +38,11 @@ public class DbsPage {
     private final By acceptCookiesByText = By.xpath(
             "//button[normalize-space()='Eu concordo']");
     private final By acceptCookiesContainer = By.xpath("/html/body/div[4]/div/div/div[2]//div");
+    private static final String COOKIE_SETTINGS_KEY = "uc_settings";
+    private static final String COOKIE_SETTINGS_VALUE = """
+            {"controllerId":"2b931d23ade9b4df5c64e6e32f63f18e7d8dd75e273af45b956fd85a7531c58a",
+            "id":"X8TnJNGW8qNbD0","language":"en","services":[],"version":"7.6.54"}
+            """.replace("\n", "").replace("\r", "");
     private final By loginEmailInput = By.id("login-email");
     private final By loginPasswordInput = By.id("login-password");
     private final By loginSubmitButton = By.cssSelector("button[type='submit']");
@@ -62,30 +68,72 @@ public class DbsPage {
         actions.sleep(3000);
     }
 
+    private void injectCookieConsent() {
+        ((JavascriptExecutor) driver).executeScript(
+                "window.localStorage.setItem(arguments[0], arguments[1]);",
+                COOKIE_SETTINGS_KEY, COOKIE_SETTINGS_VALUE);
+    }
+
     private void acceptCookies() {
+        injectCookieConsent();
+        driver.switchTo().defaultContent();
         if (acceptCookiesInCurrentContext()) {
-            return;
-        }
-        for (WebElement frame : driver.findElements(By.cssSelector("iframe, frame"))) {
-            try {
-                driver.switchTo().frame(frame);
-                if (acceptCookiesInCurrentContext()) {
-                    return;
+            driver.switchTo().defaultContent();
+            actions.sleep(1000);
+        } else {
+            for (WebElement frame : driver.findElements(By.cssSelector("iframe, frame"))) {
+                try {
+                    driver.switchTo().frame(frame);
+                } catch (StaleElementReferenceException ignored) {
+                    continue;
                 }
-            } catch (WebDriverException ignored) {
-                // Cookie consent may be hosted in a cross-origin frame.
-            } finally {
-                driver.switchTo().defaultContent();
+                if (acceptCookiesInCurrentContext()) {
+                    driver.switchTo().defaultContent();
+                    actions.sleep(1000);
+                    break;
+                }
+                driver.switchTo().parentFrame();
             }
         }
+
+        driver.switchTo().defaultContent();
         forceCloseCookieOverlay();
+        ((JavascriptExecutor) driver).executeScript("""
+                const selectors = [
+                    '.truste_overlay',
+                    '.truste_cm_outerdiv',
+                    '.truste_box_overlay',
+                    '[id^="pop-outerdiv"]',
+                    '[id^="pop-div"]',
+                    '#cookieConsentDescription'
+                ];
+                document.querySelectorAll(selectors.join(',')).forEach((element) => {
+                    element.remove();
+                });
+                document.body.style.removeProperty('overflow');
+                document.documentElement.style.removeProperty('overflow');
+                """);
+        actions.sleep(1000);
     }
 
     private boolean acceptCookiesInCurrentContext() {
         for (By locator : List.of(acceptCookiesFullPath, acceptCookiesByText, acceptCookiesButton)) {
             for (WebElement button : driver.findElements(locator)) {
-                if (button.isDisplayed() && button.isEnabled()) {
-                    actions.click(button);
+                if (button.isDisplayed() && button.isEnabled()
+                        && tryCookieActions(button)) {
+                    return true;
+                }
+            }
+        }
+
+        for (WebElement container : driver.findElements(acceptCookiesContainer)) {
+            if (container.isDisplayed()) {
+                container.sendKeys(Keys.ENTER);
+                if (!isCookieButtonVisible()) {
+                    return true;
+                }
+                container.sendKeys(Keys.SPACE);
+                if (!isCookieButtonVisible()) {
                     return true;
                 }
             }
@@ -93,18 +141,68 @@ public class DbsPage {
         return false;
     }
 
+    private boolean tryCookieActions(WebElement button) {
+        try {
+            button.click();
+        } catch (ElementClickInterceptedException ignored) {
+        }
+        if (!isCookieButtonVisible()) {
+            return true;
+        }
+
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", button);
+        if (!isCookieButtonVisible()) {
+            return true;
+        }
+
+        button.sendKeys(Keys.ENTER);
+        if (!isCookieButtonVisible()) {
+            return true;
+        }
+
+        button.sendKeys(Keys.SPACE);
+        if (!isCookieButtonVisible()) {
+            return true;
+        }
+        return forceCloseCookieOverlay();
+    }
+
+    private boolean isCookieButtonVisible() {
+        return driver.findElements(acceptCookiesByText).stream()
+                .anyMatch(WebElement::isDisplayed);
+    }
+
     private boolean forceCloseCookieOverlay() {
-        return Boolean.TRUE.equals(((JavascriptExecutor) driver).executeScript("""
-                const buttons = [...document.querySelectorAll('button')];
-                const button = buttons.find((element) => {
-                    const text = (element.innerText || element.textContent || '').trim();
-                    return /accept all|eu concordo|aceitar todos/i.test(text)
-                        && element.getClientRects().length > 0;
+        Object closed = ((JavascriptExecutor) driver).executeScript("""
+                const overlays = document.querySelectorAll(
+                    '.truste_cm_outerdiv, [id^="pop-outerdiv"], [role="dialog"]');
+                let closed = false;
+                overlays.forEach((overlay) => {
+                    if (overlay.offsetParent !== null) {
+                        overlay.style.display = 'none';
+                        overlay.style.pointerEvents = 'none';
+                        closed = true;
+                    }
                 });
-                if (!button) return false;
-                button.click();
-                return true;
-                """));
+                document.querySelectorAll('button.disclosureAcceptAll').forEach((button) => {
+                    if (button.offsetParent !== null) {
+                        let parent = button.parentElement;
+                        for (let index = 0; index < 6 && parent; index++) {
+                            if (parent.id.startsWith('pop-outerdiv')
+                                || String(parent.className).includes('outerdiv')
+                                || parent.getAttribute('role') === 'dialog') {
+                                parent.style.display = 'none';
+                                parent.style.pointerEvents = 'none';
+                                closed = true;
+                                break;
+                            }
+                            parent = parent.parentElement;
+                        }
+                    }
+                });
+                return closed;
+                """);
+        return Boolean.TRUE.equals(closed);
     }
 
     public void doDbsLogin() {
