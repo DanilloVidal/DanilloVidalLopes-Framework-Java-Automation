@@ -6,10 +6,15 @@ import io.cucumber.plugin.event.*;
 import org.openqa.selenium.WebDriver;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class CucumberStepListener implements EventListener {
 
     private static final ThreadLocal<PdfEvidenceManager> evidenceManagerContext = new ThreadLocal<>();
+    private static final List<PdfEvidenceManager.ScenarioResult> scenarioResults =
+            Collections.synchronizedList(new ArrayList<>());
 
     // --- DIAGNÓSTICO: Sinal de vida da classe ---
 // Se o Cucumber estiver carregando este plugin, esta mensagem DEVE aparecer no console.
@@ -25,6 +30,7 @@ public class CucumberStepListener implements EventListener {
         publisher.registerHandlerFor(TestCaseStarted.class, this::handleTestCaseStarted);
         publisher.registerHandlerFor(TestStepFinished.class, this::handleTestStepFinished);
         publisher.registerHandlerFor(TestCaseFinished.class, this::handleTestCaseFinished);
+        publisher.registerHandlerFor(TestRunFinished.class, this::handleTestRunFinished);
     }
 
     private void handleTestCaseStarted(TestCaseStarted event) {
@@ -47,7 +53,8 @@ public class CucumberStepListener implements EventListener {
             PickleStepTestStep pickleStep = (PickleStepTestStep) event.getTestStep();
             String stepText = pickleStep.getStep().getKeyword() + pickleStep.getStep().getText();
             try {
-                pdfManager.addScreenshot(driver, stepText);
+                pdfManager.addScreenshot(driver, stepText,
+                        event.getResult().getStatus(), event.getResult().getError());
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -57,10 +64,41 @@ public class CucumberStepListener implements EventListener {
     private void handleTestCaseFinished(TestCaseFinished event) {
         PdfEvidenceManager pdfManager = evidenceManagerContext.get();
         if (pdfManager != null) {
-            pdfManager.addFinalStatus(event.getResult().getStatus());
+            Status status = event.getResult().getStatus();
+            String error = event.getResult().getError() == null
+                    ? null : event.getResult().getError().toString();
+            pdfManager.addFinalStatus(status);
             pdfManager.endReport();
+            scenarioResults.add(new PdfEvidenceManager.ScenarioResult(
+                    event.getTestCase().getName(), status, error,
+                    featureName(event.getTestCase())));
             evidenceManagerContext.remove();
             System.out.println("[LISTENER] Relatório finalizado.");
         }
+    }
+
+    private void handleTestRunFinished(TestRunFinished event) {
+        try {
+            List<PdfEvidenceManager.ScenarioResult> results;
+            synchronized (scenarioResults) {
+                results = new ArrayList<>(scenarioResults);
+            }
+            PdfEvidenceManager.createSummaryReport(results);
+            scenarioResults.clear();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String featureName(TestCase testCase) {
+        String uri = testCase.getUri() == null
+                ? "feature"
+                : testCase.getUri().toString();
+        int end = uri.lastIndexOf('/');
+        int start = uri.lastIndexOf('/', end - 1);
+        if (end > start) {
+            return uri.substring(start + 1, end);
+        }
+        return "feature";
     }
 }

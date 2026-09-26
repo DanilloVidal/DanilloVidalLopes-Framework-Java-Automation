@@ -4,10 +4,12 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.edge.EdgeDriver;
+import org.openqa.selenium.edge.EdgeOptions;
 
 import java.util.Collections;
 import java.util.ArrayList;
 import java.util.List;
+import java.nio.file.Path;
 
 public class DriverFactory {
 
@@ -40,10 +42,17 @@ public class DriverFactory {
 
         switch (browser.toLowerCase()) {
             case "edge":
-                // Maintaining the absolute path to msedgedriver
-                String driverPath = System.getProperty("user.dir") + "/drivers/msedgedriver";
-                System.setProperty("webdriver.edge.driver", driverPath);
-                driver = new EdgeDriver();
+                Path edgeDriverPath = Path.of(
+                        System.getProperty("user.dir"), "drivers", "msedgedriver.exe")
+                        .toAbsolutePath();
+                if (!edgeDriverPath.toFile().exists()) {
+                    throw new IllegalStateException(
+                            "EdgeDriver not found at " + edgeDriverPath);
+                }
+                System.setProperty("webdriver.edge.driver", edgeDriverPath.toString());
+                EdgeOptions edgeOptions = new EdgeOptions();
+                edgeOptions.addArguments("--start-maximized");
+                driver = new EdgeDriver(edgeOptions);
                 break;
             default: // "chrome" or any other value
                 // Maintaining automatic management of chromedriver

@@ -41,6 +41,7 @@ public class GooglePage {
     public void search(String text) {
         actions.sendKeys(searchBoxByName, text);
         actions.pressEnter(searchBoxByName);
+        actions.sleep(5);
     }
 
     /**

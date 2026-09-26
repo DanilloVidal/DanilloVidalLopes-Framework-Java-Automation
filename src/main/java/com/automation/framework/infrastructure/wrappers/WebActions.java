@@ -50,6 +50,18 @@ public class WebActions {
         wait.until(ExpectedConditions.elementToBeClickable(locator)).click();
     }
 
+    public void clickByXpath(String xpath) {
+        WebElement element = wait.until(
+                ExpectedConditions.elementToBeClickable(By.xpath(xpath)));
+        try {
+            element.click();
+        } catch (ElementClickInterceptedException exception) {
+            jsExecutor.executeScript(
+                    "arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();",
+                    element);
+        }
+    }
+
     /**
      * Clears the text from an input field and then sends the specified keys.
      *
@@ -104,6 +116,24 @@ public class WebActions {
      */
     public String getAttribute(By locator, String attributeName) {
         return wait.until(ExpectedConditions.presenceOfElementLocated(locator)).getAttribute(attributeName);
+    }
+
+    /**
+     * [CAUTION] Pauses test execution for a fixed period of time.
+     * This method should be used as a <b>last resort</b>, only for debugging or
+     * in very specific scenarios where Selenium's explicit wait times don't work.
+     * Excessive use of fixed wait times makes tests slow and unstable.
+     * Always prefer using WebDriverWait-based methods.
+     *
+     * @param milliseconds O tempo a esperar em milissegundos.
+     */
+    public void sleep(long milliseconds) {
+        try {
+            Thread.sleep(milliseconds);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("A thread foi interrompida durante o sleep", e);
+        }
     }
 
     //endregion
@@ -195,6 +225,20 @@ public class WebActions {
      */
     public void switchToFrame(String nameOrId) {
         wait.until(ExpectedConditions.frameToBeAvailableAndSwitchToIt(nameOrId));
+    }
+
+    /**
+     * Switches to an iframe located by XPath.
+     *
+     * @param iframeXpath XPath of the iframe element.
+     */
+    public void switchToFrameByXpath(String iframeXpath) {
+        wait.until(ExpectedConditions.frameToBeAvailableAndSwitchToIt(
+                By.xpath(iframeXpath)));
+    }
+
+    public void switchToFrame(By locator) {
+        wait.until(ExpectedConditions.frameToBeAvailableAndSwitchToIt(locator));
     }
 
     /**
@@ -321,6 +365,10 @@ public class WebActions {
         jsExecutor.executeScript("arguments[0].scrollIntoView(true);", element);
     }
 
+    public void scrollToElementByXpath(String xpath) {
+        scrollToElement(By.xpath(xpath));
+    }
+
     /**
      * Clicks an element using JavaScript. Useful for elements that are hidden or overlapped.
      *
@@ -425,6 +473,7 @@ public class WebActions {
     public String getTitle() {
         return driver.getTitle();
     }
+
 
     //endregion
 }

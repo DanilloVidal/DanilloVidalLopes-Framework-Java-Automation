@@ -7,6 +7,8 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
+import static java.lang.Thread.sleep;
+
 public class GoogleSteps {
 
     // Declara a variável para o Page Object
@@ -30,9 +32,10 @@ public class GoogleSteps {
     }
 
     @Then("I should see the results page for {string}")
-    public void iShouldSeeTheResultsPageFor(String text) {
+    public void iShouldSeeTheResultsPageFor(String text) throws InterruptedException {
         // Aqui viria a lógica para validar se a página de resultados foi exibida
         // Ex: Assert.assertTrue(googlePage.isResultPageDisplayedFor(text));
+        sleep(2000); // Apenas para simular uma espera, não recomendado em testes reais
         System.out.println("Passo de validação para: " + text);
     }
 }
