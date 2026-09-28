@@ -1,0 +1,7 @@
+{
+    "java.compile.nullAnalysis.mode": "automatic",
+    "cucumberJavaRunner.enableCodeLens": true,
+    "cucumberJavaRunner.additionalGluePaths": [
+        "com.automation.framework.presentation.steps"
+    ]
+}
