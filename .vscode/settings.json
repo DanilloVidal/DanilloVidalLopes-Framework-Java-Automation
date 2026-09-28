@@ -1,7 +1,15 @@
 {
     "java.compile.nullAnalysis.mode": "automatic",
+    "java.configuration.updateBuildConfiguration": "automatic",
     "cucumberJavaRunner.enableCodeLens": true,
+    "cucumberJavaRunner.projectName": "DanilloVidalLopes-selenium-FrameWork-Google-Edge",
     "cucumberJavaRunner.additionalGluePaths": [
         "com.automation.framework.presentation.steps"
+    ],
+    "cucumber.features": [
+        "src/main/resources/features/**/*.feature"
+    ],
+    "cucumber.glue": [
+        "src/main/java/**/*.java"
     ]
 }

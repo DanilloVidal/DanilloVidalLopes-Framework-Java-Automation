@@ -1,0 +1,27 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Cucumber: cenário no cursor",
+            "request": "launch",
+            "mainClass": "io.cucumber.core.cli.Main",
+            "projectName": "DanilloVidalLopes-selenium-FrameWork-Google-Edge",
+            "cwd": "${workspaceFolder}",
+            "args": "--glue com.automation.framework.presentation.steps --plugin pretty ${relativeFile}:${lineNumber}",
+            "vmArgs": "-Dfile.encoding=UTF-8",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "java",
+            "name": "Cucumber: feature aberto",
+            "request": "launch",
+            "mainClass": "io.cucumber.core.cli.Main",
+            "projectName": "DanilloVidalLopes-selenium-FrameWork-Google-Edge",
+            "cwd": "${workspaceFolder}",
+            "args": "--glue com.automation.framework.presentation.steps --plugin pretty ${relativeFile}",
+            "vmArgs": "-Dfile.encoding=UTF-8",
+            "console": "integratedTerminal"
+        }
+    ]
+}
