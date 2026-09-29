@@ -76,6 +76,13 @@
     <version>7.2.5</version>
     </dependency>
 
+    <!-- Gravação de tela das execuções (vídeo salvo junto da evidência em PDF) -->
+    <dependency>
+      <groupId>com.github.stephenc.monte</groupId>
+      <artifactId>monte-screen-recorder</artifactId>
+      <version>0.7.7.0</version>
+    </dependency>
+
   </dependencies>
 
   <build>

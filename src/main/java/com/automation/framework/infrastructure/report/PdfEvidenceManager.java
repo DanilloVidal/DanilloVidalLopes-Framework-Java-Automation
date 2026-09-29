@@ -59,6 +59,11 @@ public class PdfEvidenceManager {
         pdfDocument.set(document);
     }
 
+    // Pasta de evidência do cenário atual (usada também para salvar a gravação de tela)
+    public Path getReportPath() {
+        return reportPath;
+    }
+
     public void addScreenshot(WebDriver driver, String stepText, Status status, Throwable error) {
         Document document = pdfDocument.get();
         if (document == null || driver == null) return;

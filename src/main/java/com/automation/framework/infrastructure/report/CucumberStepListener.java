@@ -13,6 +13,7 @@ import java.util.List;
 public class CucumberStepListener implements EventListener {
 
     private static final ThreadLocal<PdfEvidenceManager> evidenceManagerContext = new ThreadLocal<>();
+    private static final ThreadLocal<ScreenRecorderManager> screenRecorderContext = new ThreadLocal<>();
     private static final List<PdfEvidenceManager.ScenarioResult> scenarioResults =
             Collections.synchronizedList(new ArrayList<>());
 
@@ -43,6 +44,36 @@ public class CucumberStepListener implements EventListener {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        startScreenRecording(manager);
+    }
+
+    // Grava a tela do cenário na mesma pasta da evidência em PDF
+    private void startScreenRecording(PdfEvidenceManager manager) {
+        if (!ScreenRecorderManager.isEnabled() || manager.getReportPath() == null) {
+            return;
+        }
+        ScreenRecorderManager recorder = new ScreenRecorderManager();
+        try {
+            recorder.start(manager.getReportPath(), "Test_Recording");
+            screenRecorderContext.set(recorder);
+            System.out.println("[LISTENER] Gravação de tela iniciada.");
+        } catch (Exception e) {
+            System.err.println("[LISTENER] Não foi possível iniciar a gravação de tela: " + e.getMessage());
+        }
+    }
+
+    private void stopScreenRecording() {
+        ScreenRecorderManager recorder = screenRecorderContext.get();
+        if (recorder == null) {
+            return;
+        }
+        try {
+            System.out.println("[LISTENER] Gravação de tela salva em: " + recorder.stop());
+        } catch (Exception e) {
+            System.err.println("[LISTENER] Não foi possível finalizar a gravação de tela: " + e.getMessage());
+        } finally {
+            screenRecorderContext.remove();
+        }
     }
 
     private void handleTestStepFinished(TestStepFinished event) {
@@ -62,6 +93,7 @@ public class CucumberStepListener implements EventListener {
     }
 
     private void handleTestCaseFinished(TestCaseFinished event) {
+        stopScreenRecording();
         PdfEvidenceManager pdfManager = evidenceManagerContext.get();
         if (pdfManager != null) {
             Status status = event.getResult().getStatus();
