@@ -5,6 +5,8 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.ElementClickInterceptedException;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.SearchContext;
+import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -22,6 +24,34 @@ import java.time.Duration;
 import java.util.List;
 
 public class Actions extends WebActions {
+
+    // Localiza um campo DSM (dsm-select, dsm-input, dsm-radio-button-group) pelo atributo label,
+    // procurando inclusive dentro de shadow roots. Usado pelos métodos "...ByLabel".
+    private static final String FIND_FIELD_JS = """
+            const normalize = (value) => String(value || '').split(' ').filter(Boolean).join(' ')
+                .trim().toLowerCase();
+            const findElements = (root, selector) => {
+                const elements = [...root.querySelectorAll(selector)];
+                for (const element of root.querySelectorAll('*')) {
+                    if (element.shadowRoot) {
+                        elements.push(...findElements(element.shadowRoot, selector));
+                    }
+                }
+                return elements;
+            };
+            const findField = (tag, label) => findElements(document, tag)
+                .filter((element) => element.getClientRects().length > 0)
+                .find((element) => normalize(element.getAttribute('label')) === normalize(label));
+            const textOf = (node) => {
+                if (!node) return '';
+                if (node.nodeType === Node.TEXT_NODE) return node.nodeValue || '';
+                if (node.nodeType === Node.ELEMENT_NODE && node.tagName.toLowerCase() === 'slot') {
+                    return node.assignedNodes({flatten: true}).map(textOf).join(' ');
+                }
+                const children = [...node.childNodes].map(textOf).join(' ');
+                return node.shadowRoot ? textOf(node.shadowRoot) + ' ' + children : children;
+            };
+            """;
 
     private final WebDriver driver;
     private final org.openqa.selenium.interactions.Actions interactionActions;
@@ -421,6 +451,175 @@ public class Actions extends WebActions {
         for (int index = 0; index < times; index++) {
             click(locator);
         }
+    }
+
+    // ---------------------------------------------------------------------
+    // Componentes DSM (dsm-button, dsm-select, dsm-input, dsm-radio-button-group, dsm-modal)
+    // ---------------------------------------------------------------------
+
+    public void clickDsmButton(String text, boolean lastMatch) {
+        boolean clicked = Boolean.TRUE.equals(((JavascriptExecutor) driver).executeScript("""
+                const buttons = [...document.querySelectorAll('dsm-button')]
+                    .filter((element) => {
+                        const content = [
+                            element.shadowRoot?.textContent,
+                            element.textContent,
+                            element.innerText
+                        ].filter(Boolean).join(' ').trim();
+                        return element.offsetParent !== null
+                            && content.includes(arguments[0]);
+                    });
+                if (buttons.length === 0) {
+                    return false;
+                }
+                const index = arguments[1] ? buttons.length - 1 : 0;
+                const host = buttons[index];
+                const button = host.shadowRoot?.querySelector('button');
+                (button || host).scrollIntoView({block: 'center'});
+                (button || host).click();
+                return true;
+                """, text, lastMatch));
+        if (!clicked) {
+            throw new NoSuchElementException("DSM button was not found: " + text);
+        }
+    }
+
+    public void selectDsmOptionByLabel(String label, String option) {
+        String result = "";
+        for (int attempt = 0; attempt < 20; attempt++) {
+            result = String.valueOf(((JavascriptExecutor) driver).executeScript(FIND_FIELD_JS + """
+                    const select = findField('dsm-select', arguments[0]);
+                    if (!select) return 'field not found';
+                    if (select.hasAttribute('disabled') && select.getAttribute('disabled') !== 'false') {
+                        return 'field disabled';
+                    }
+                    const control = select.shadowRoot?.querySelector(
+                        '[role="button"][aria-controls], [role="button"].select, '
+                        + 'button, div[role="button"], div[tabindex]');
+                    (control || select).scrollIntoView({block: 'center'});
+                    (control || select).click();
+                    const options = findElements(select.shadowRoot || select, 'li, [role="option"]');
+                    const match = options.find((element) =>
+                        normalize(element.textContent) === normalize(arguments[1]));
+                    if (!match) return 'option not found';
+                    match.scrollIntoView({block: 'center'});
+                    match.click();
+                    return 'ok';
+                    """, label, option));
+            if ("ok".equals(result)) {
+                sleep(1000);
+                return;
+            }
+            sleep(500);
+        }
+        throw new NoSuchElementException(
+                "DSM option '" + option + "' could not be selected in '" + label + "': " + result);
+    }
+
+    public void typeDsmInputByLabel(String label, String text) {
+        WebElement input = null;
+        for (int attempt = 0; attempt < 20 && input == null; attempt++) {
+            input = (WebElement) ((JavascriptExecutor) driver).executeScript(FIND_FIELD_JS + """
+                    const field = findField('dsm-input', arguments[0]);
+                    return field?.shadowRoot?.querySelector('input, textarea') || null;
+                    """, label);
+            if (input == null) {
+                sleep(500);
+            }
+        }
+        if (input == null) {
+            throw new NoSuchElementException("DSM input field was not found: " + label);
+        }
+        ((JavascriptExecutor) driver).executeScript(
+                "arguments[0].scrollIntoView({block: 'center'});", input);
+        input.clear();
+        input.sendKeys(text);
+    }
+
+    public String getDsmInputValueByLabel(String label) {
+        Object value = ((JavascriptExecutor) driver).executeScript(FIND_FIELD_JS + """
+                const field = findField('dsm-input', arguments[0]);
+                if (!field) return null;
+                return field.shadowRoot?.querySelector('input, textarea')?.value
+                    ?? field.getAttribute('value') ?? '';
+                """, label);
+        if (value == null) {
+            throw new NoSuchElementException("DSM input field was not found: " + label);
+        }
+        return String.valueOf(value);
+    }
+
+    public void chooseDsmRadioByLabel(String groupLabel, String option) {
+        String result = "";
+        for (int attempt = 0; attempt < 20; attempt++) {
+            result = String.valueOf(((JavascriptExecutor) driver).executeScript(FIND_FIELD_JS + """
+                    const group = findField('dsm-radio-button-group', arguments[0]);
+                    if (!group) return 'group not found';
+                    if (group.hasAttribute('disabled') && group.getAttribute('disabled') !== 'false') {
+                        return 'group disabled';
+                    }
+                    const radios = [...new Set([
+                        ...findElements(group, 'dsm-radio-button'),
+                        ...(group.shadowRoot ? findElements(group.shadowRoot, 'dsm-radio-button') : [])
+                    ])];
+                    const radio = radios.find((element) =>
+                        normalize(element.getAttribute('label') || textOf(element))
+                            === normalize(arguments[1]));
+                    if (!radio) return 'option not found';
+                    const control = radio.shadowRoot?.querySelector('input, label') || radio;
+                    control.scrollIntoView({block: 'center'});
+                    control.click();
+                    return 'ok';
+                    """, groupLabel, option));
+            if ("ok".equals(result)) {
+                sleep(1000);
+                return;
+            }
+            sleep(500);
+        }
+        throw new NoSuchElementException(
+                "DSM radio '" + option + "' could not be chosen in '" + groupLabel + "': " + result);
+    }
+
+    public String getDsmFieldTextByLabel(String label) {
+        Object text = ((JavascriptExecutor) driver).executeScript(FIND_FIELD_JS + """
+                const field = ['dsm-select', 'dsm-input', 'dsm-radio-button-group']
+                    .map((tag) => findField(tag, arguments[0]))
+                    .find(Boolean);
+                if (!field) return null;
+                return (field.getAttribute('invalid') === 'true' ? '[invalid] ' : '') + textOf(field);
+                """, label);
+        if (text == null) {
+            throw new NoSuchElementException("DSM field was not found: " + label);
+        }
+        return String.valueOf(text);
+    }
+
+    public void clickDsmModalButton(String xpath) {
+        for (int attempt = 0; attempt < 20; attempt++) {
+            try {
+                WebElement host = driver.findElement(By.xpath(xpath));
+                SearchContext shadowRoot = host.getShadowRoot();
+                WebElement button = shadowRoot.findElement(By.cssSelector("button"));
+                if (!host.isDisplayed() || !button.isDisplayed() || !button.isEnabled()) {
+                    sleep(500);
+                    continue;
+                }
+                ((JavascriptExecutor) driver).executeScript(
+                        "arguments[0].scrollIntoView({block: 'center'});", button);
+                try {
+                    button.click();
+                } catch (ElementClickInterceptedException exception) {
+                    ((JavascriptExecutor) driver).executeScript(
+                            "arguments[0].click();", button);
+                }
+                return;
+            } catch (NoSuchElementException | StaleElementReferenceException exception) {
+                sleep(500);
+            }
+        }
+        throw new AssertionError(
+                "The button was not clickable in the visible DSM modal: " + xpath);
     }
 
     private boolean isDownloadComplete(Path directory, String fileName) {

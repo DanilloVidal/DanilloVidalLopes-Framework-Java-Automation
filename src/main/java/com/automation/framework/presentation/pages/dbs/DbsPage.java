@@ -1,9 +1,11 @@
 package com.automation.framework.presentation.pages.dbs;
-
 import com.automation.framework.infrastructure.config.CredentialsProvider;
 import com.automation.framework.infrastructure.config.LoginCredentials;
 import com.automation.framework.infrastructure.driver.DriverFactory;
-import com.automation.framework.presentation.actions.dbs.DbsActions;
+import com.automation.framework.presentation.actions.dbs.DbsAction;
+import com.automation.framework.presentation.data.dbs.RegisterSampleFields;
+import com.automation.framework.presentation.data.dbs.SampleContext;
+import com.automation.framework.presentation.data.dbs.SwineSampleDefaults;
 import org.openqa.selenium.By;
 import org.openqa.selenium.ElementClickInterceptedException;
 import org.openqa.selenium.JavascriptExecutor;
@@ -11,7 +13,6 @@ import org.openqa.selenium.Keys;
 import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-
 import java.util.List;
 
 public class DbsPage {
@@ -30,7 +31,7 @@ public class DbsPage {
     private static final String ORDER_CONFIRM_BUTTON_XPATH =
             "/html/body/div[1]/main/dsm-grid/dsm-modal/dsm-button[2]";
 
-    private final DbsActions actions;
+    private final DbsAction actions;
     private final WebDriver driver;
     private final By acceptCookiesButton = By.cssSelector("button.disclosureAcceptAll");
     private final By acceptCookiesFullPath = By.xpath(
@@ -54,7 +55,7 @@ public class DbsPage {
 
     public DbsPage(WebDriver driver) {
         this.driver = driver;
-        this.actions = new DbsActions(driver, 10);
+        this.actions = new DbsAction(driver, 10);
     }
 
     public void navigateToDbs() {
@@ -230,6 +231,71 @@ public class DbsPage {
         actions.sleep(5000);
         actions.clickDsmButton("Order new kit", false);
         actions.sleep(2000);
+    }
+
+    public void clickRegisterSamples(String animalType) {
+        SampleContext.start(animalType.trim().toLowerCase());
+        actions.sleep(5000);
+        actions.clickDsmButton("Register " + animalType.trim().toLowerCase() + " samples", false);
+        actions.sleep(2000);
+    }
+
+    // Register samples form: campos localizados pelo label exibido na tela.
+    // Cada valor preenchido fica salvo no SampleContext para validações posteriores.
+    public void selectRegisterOption(String fieldLabel, String option) {
+        actions.selectDsmOptionByLabel(fieldLabel, option);
+        SampleContext.put(fieldLabel, option);
+    }
+
+    public void typeRegisterField(String fieldLabel, String text) {
+        actions.typeDsmInputByLabel(fieldLabel, text);
+        SampleContext.put(fieldLabel, text);
+    }
+
+    public void chooseRegisterRadio(String groupLabel, String option) {
+        actions.chooseDsmRadioByLabel(groupLabel, option);
+        SampleContext.put(groupLabel, option);
+    }
+
+    // Fluxo completo da etapa "Farm information" de swine com os valores padrão,
+    // para ser encapsulado em um único step no futuro
+    public void fillSwineFarmInformation() {
+        selectRegisterOption(RegisterSampleFields.CUSTOMER, SwineSampleDefaults.CUSTOMER);
+        selectRegisterOption(RegisterSampleFields.FARM, SwineSampleDefaults.FARM);
+        typeRegisterField(RegisterSampleFields.BARN_NAME, SwineSampleDefaults.BARN_NAME);
+        chooseRegisterRadio(RegisterSampleFields.HOUSING, SwineSampleDefaults.HOUSING);
+        selectRegisterOption(RegisterSampleFields.PRODUCTION_SYSTEM, SwineSampleDefaults.PRODUCTION_SYSTEM);
+        selectRegisterOption(RegisterSampleFields.PURPOSE_OF_ANALYSIS, SwineSampleDefaults.PURPOSE_OF_ANALYSIS);
+        clickRegisterNext();
+        validateRequiredFieldMessage(RegisterSampleFields.END_CUSTOMER);
+        selectRegisterOption(RegisterSampleFields.END_CUSTOMER, SwineSampleDefaults.END_CUSTOMER);
+        clickRegisterNext();
+        validateRequiredFieldMessage(RegisterSampleFields.END_CUSTOMER_NAME);
+        typeRegisterField(RegisterSampleFields.END_CUSTOMER_NAME, SwineSampleDefaults.END_CUSTOMER_NAME);
+        validateFieldIsNotEmpty(RegisterSampleFields.END_CUSTOMER_NAME);
+    }
+
+    public void clickRegisterNext() {
+        actions.clickDsmButton("Next", false);
+        actions.sleep(1000);
+    }
+
+    public void validateRequiredFieldMessage(String fieldLabel) {
+        String expected = normalizeText(fieldLabel + " is a required field");
+        for (int attempt = 0; attempt < 10; attempt++) {
+            if (normalizeText(actions.getDsmFieldTextByLabel(fieldLabel)).contains(expected)) {
+                return;
+            }
+            actions.sleep(500);
+        }
+        throw new AssertionError("Required message was not displayed for field: " + fieldLabel
+                + ". Field text: " + actions.getDsmFieldTextByLabel(fieldLabel));
+    }
+
+    public void validateFieldIsNotEmpty(String fieldLabel) {
+        if (actions.getDsmInputValueByLabel(fieldLabel).isBlank()) {
+            throw new AssertionError("Field should not be empty: " + fieldLabel);
+        }
     }
 
     public void selectFarm(String farm) {

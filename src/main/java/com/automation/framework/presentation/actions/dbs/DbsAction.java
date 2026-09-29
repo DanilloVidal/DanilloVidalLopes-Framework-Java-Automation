@@ -1,20 +1,17 @@
 package com.automation.framework.presentation.actions.dbs;
 
 import com.automation.framework.presentation.actions.Actions;
-import org.openqa.selenium.By;
-import org.openqa.selenium.ElementClickInterceptedException;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.NoSuchElementException;
-import org.openqa.selenium.SearchContext;
-import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
 
-public class DbsActions extends Actions {
+// Ações específicas das telas do DBS (dependem dos XPaths e da ordem dos campos do DBS).
+// Ações genéricas de componentes DSM ficam em Actions.
+public class DbsAction extends Actions {
 
     private final WebDriver driver;
 
-    public DbsActions(WebDriver driver, int timeoutInSeconds) {
+    public DbsAction(WebDriver driver, int timeoutInSeconds) {
         super(driver, timeoutInSeconds);
         this.driver = driver;
     }
@@ -78,33 +75,6 @@ public class DbsActions extends Actions {
                 """, xpath));
         if (!clicked) {
             throw new NoSuchElementException("DBS element was not found for XPath: " + xpath);
-        }
-    }
-
-    public void clickDsmButton(String text, boolean lastMatch) {
-        boolean clicked = Boolean.TRUE.equals(((JavascriptExecutor) driver).executeScript("""
-                const buttons = [...document.querySelectorAll('dsm-button')]
-                    .filter((element) => {
-                        const content = [
-                            element.shadowRoot?.textContent,
-                            element.textContent,
-                            element.innerText
-                        ].filter(Boolean).join(' ').trim();
-                        return element.offsetParent !== null
-                            && content.includes(arguments[0]);
-                    });
-                if (buttons.length === 0) {
-                    return false;
-                }
-                const index = arguments[1] ? buttons.length - 1 : 0;
-                const host = buttons[index];
-                const button = host.shadowRoot?.querySelector('button');
-                (button || host).scrollIntoView({block: 'center'});
-                (button || host).click();
-                return true;
-                """, text, lastMatch));
-        if (!clicked) {
-            throw new NoSuchElementException("DBS button was not found: " + text);
         }
     }
 
@@ -206,32 +176,5 @@ public class DbsActions extends Actions {
             throw new NoSuchElementException("DBS option was not found: " + option);
         }
         sleep(1000);
-    }
-
-    public void clickDsmModalButton(String xpath) {
-        for (int attempt = 0; attempt < 20; attempt++) {
-            try {
-                WebElement host = driver.findElement(By.xpath(xpath));
-                SearchContext shadowRoot = host.getShadowRoot();
-                WebElement button = shadowRoot.findElement(By.cssSelector("button"));
-                if (!host.isDisplayed() || !button.isDisplayed() || !button.isEnabled()) {
-                    sleep(500);
-                    continue;
-                }
-                ((JavascriptExecutor) driver).executeScript(
-                        "arguments[0].scrollIntoView({block: 'center'});", button);
-                try {
-                    button.click();
-                } catch (ElementClickInterceptedException exception) {
-                    ((JavascriptExecutor) driver).executeScript(
-                            "arguments[0].click();", button);
-                }
-                return;
-            } catch (NoSuchElementException | StaleElementReferenceException exception) {
-                sleep(500);
-            }
-        }
-        throw new AssertionError(
-                "The confirmation button was not clickable in the visible DBS modal: " + xpath);
     }
 }

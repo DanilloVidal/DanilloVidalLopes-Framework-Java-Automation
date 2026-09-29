@@ -48,6 +48,50 @@ public class DbsSteps {
         dbsPage.clickOrderNewKit();
     }
 
+    @When("I click the Register {string} samples button")
+    public void iClickTheRegisterSamplesButton(String animalType) {
+        // animalType: swine, poultry ou ruminant
+        dbsPage.clickRegisterSamples(animalType);
+    }
+
+    // Register samples form: steps genéricos, o campo é informado pelo label da tela
+    @When("I select {string} in the {string} field")
+    public void iSelectOptionInTheField(String option, String fieldLabel) {
+        dbsPage.selectRegisterOption(fieldLabel, option);
+    }
+
+    @When("I enter {string} in the {string} field")
+    public void iEnterTextInTheField(String text, String fieldLabel) {
+        dbsPage.typeRegisterField(fieldLabel, text);
+    }
+
+    @When("I choose {string} in the {string} option")
+    public void iChooseRadioInTheOption(String option, String groupLabel) {
+        dbsPage.chooseRegisterRadio(groupLabel, option);
+    }
+
+    @When("I click Next on the register form")
+    public void iClickNextOnTheRegisterForm() {
+        dbsPage.clickRegisterNext();
+    }
+
+    @Then("the {string} field should show the required message")
+    public void theFieldShouldShowTheRequiredMessage(String fieldLabel) {
+        dbsPage.validateRequiredFieldMessage(fieldLabel);
+    }
+
+    @Then("the {string} field should not be empty")
+    public void theFieldShouldNotBeEmpty(String fieldLabel) {
+        dbsPage.validateFieldIsNotEmpty(fieldLabel);
+    }
+
+    // Versão encapsulada: preenche toda a etapa "Farm information" de swine
+    // com os valores de SwineSampleDefaults
+    @When("I fill the swine farm information")
+    public void iFillTheSwineFarmInformation() {
+        dbsPage.fillSwineFarmInformation();
+    }
+
     @When("I select the farm {string}")
     public void iSelectTheFarm(String farmName) {
         dbsPage.selectFarm(farmName);
