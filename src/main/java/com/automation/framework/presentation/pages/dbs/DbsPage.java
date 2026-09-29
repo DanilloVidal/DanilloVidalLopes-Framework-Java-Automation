@@ -13,7 +13,10 @@ import org.openqa.selenium.Keys;
 import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class DbsPage {
 
@@ -276,13 +279,231 @@ public class DbsPage {
         validateFieldIsNotEmpty(RegisterSampleFields.END_CUSTOMER_NAME);
     }
 
+    // Fluxo completo da etapa "Animal information" de swine com os valores padrão
+    public void fillSwineAnimalInformation() {
+        selectRegisterOption(RegisterSampleFields.PHYSIOLOGICAL_STAGE, SwineSampleDefaults.PHYSIOLOGICAL_STAGE);
+        validateFieldIsEmpty(RegisterSampleFields.AVERAGE_WEIGHT);
+        validateFieldIsDisabled(RegisterSampleFields.SPECIFIC_PROBLEM_AREA);
+        clickRegisterNext();
+        // As mensagens são validadas juntas: escolher o Average weight limpa o erro do Reason
+        validateRequiredFieldMessage(RegisterSampleFields.AVERAGE_WEIGHT);
+        validateRequiredFieldMessage(RegisterSampleFields.REASON_FOR_ANALYSIS);
+        validateRequiredFieldMessage(RegisterSampleFields.SEX);
+        validateRequiredFieldMessage(RegisterSampleFields.GENETICS_SUPPLIER);
+        validateRequiredFieldMessage(RegisterSampleFields.GENETICS_LINE);
+        selectRegisterOption(RegisterSampleFields.AVERAGE_WEIGHT, SwineSampleDefaults.AVERAGE_WEIGHT);
+        selectRegisterOption(RegisterSampleFields.REASON_FOR_ANALYSIS, SwineSampleDefaults.REASON_FOR_ANALYSIS);
+        validateFieldIsEnabled(RegisterSampleFields.SPECIFIC_PROBLEM_AREA);
+        validateFieldIsEmpty(RegisterSampleFields.SPECIFIC_PROBLEM_AREA);
+        clickRegisterNext();
+        validateRequiredFieldMessage(RegisterSampleFields.SPECIFIC_PROBLEM_AREA);
+        selectRegisterOption(RegisterSampleFields.SPECIFIC_PROBLEM_AREA, SwineSampleDefaults.SPECIFIC_PROBLEM_AREA);
+        chooseRegisterRadio(RegisterSampleFields.SEX, SwineSampleDefaults.SEX);
+        selectRegisterOption(RegisterSampleFields.GENETICS_SUPPLIER, SwineSampleDefaults.GENETICS_SUPPLIER);
+        validateFieldIsEmpty(RegisterSampleFields.GENETICS_LINE);
+        selectRegisterOption(RegisterSampleFields.GENETICS_LINE, SwineSampleDefaults.GENETICS_LINE);
+    }
+
+    // Fluxo completo da etapa "Feed information" de swine com os valores padrão
+    public void fillSwineFeedInformation() {
+        typeRegisterField(RegisterSampleFields.VITAMIN_D3, SwineSampleDefaults.VITAMIN_D3);
+        validateFieldValue(RegisterSampleFields.TOTAL_VITAMIN_D3_IN_DIET, SwineSampleDefaults.VITAMIN_D3);
+        typeRegisterField(RegisterSampleFields.VITAMIN_25_OH_LEVEL, SwineSampleDefaults.VITAMIN_25_OH_LEVEL);
+        validateFieldValue(RegisterSampleFields.VITAMIN_25_OH_D3, SwineSampleDefaults.EXPECTED_VITAMIN_25_OH_D3);
+        validateFieldValue(RegisterSampleFields.TOTAL_VITAMIN_D3_IN_DIET,
+                SwineSampleDefaults.EXPECTED_TOTAL_VITAMIN_D3_IN_DIET);
+        fillRangeField(RegisterSampleFields.TOTAL_CALCIUM, SwineSampleDefaults.TOTAL_CALCIUM);
+        fillRangeField(RegisterSampleFields.TOTAL_PHOSPHORUS, SwineSampleDefaults.TOTAL_PHOSPHORUS);
+        typeRegisterField(RegisterSampleFields.PHYTASE, SwineSampleDefaults.PHYTASE);
+        selectRegisterOption(RegisterSampleFields.PHYTASE_UNIT, SwineSampleDefaults.PHYTASE_UNIT);
+    }
+
+    // Fluxo da etapa "Register cards" de swine com os valores padrão
+    public void fillSwineRegisterCards() {
+        clickRegisterSample();
+        validateRequiredFieldMessage(RegisterSampleFields.SAMPLE_COLLECTION_DATE);
+        validateRequiredFieldMessage(RegisterSampleFields.DBS_SAMPLE_CARD_ID);
+        typeCurrentDate(RegisterSampleFields.SAMPLE_COLLECTION_DATE);
+        validateFieldIsCurrentDate(RegisterSampleFields.SAMPLE_COLLECTION_DATE);
+        chooseRegisterRadio(RegisterSampleFields.VERAX_SAMPLING_SESSION, SwineSampleDefaults.VERAX_SAMPLING_SESSION);
+        typeRandomCardId();
+        typeRegisterField(RegisterSampleFields.ANIMAL_DETAILS, SwineSampleDefaults.ANIMAL_DETAILS);
+        chooseRegisterRadio(RegisterSampleFields.INCREASED_MORTALITY, SwineSampleDefaults.INCREASED_MORTALITY);
+        typeRegisterField(RegisterSampleFields.ADDITIONAL_NOTES, SwineSampleDefaults.ADDITIONAL_NOTES);
+    }
+
+    // Envia a sample: confere o modal, cancela, reenvia e confirma
+    public void submitSwineSample() {
+        clickRegisterSample();
+        validateSubmitConfirmationValues();
+        cancelSubmitConfirmation();
+        clickRegisterSample();
+        confirmSubmitConfirmation();
+        validateSamplesRegisteredMessage();
+        closeSamplesRegisteredMessage();
+        validateHomePage();
+    }
+
+    // Gera um card ID aleatório de 6 dígitos; se o app disser que o card já foi usado, gera outro.
+    // O valor fica salvo no SampleContext (RegisterSampleFields.DBS_SAMPLE_CARD_ID) para consultas futuras.
+    public String typeRandomCardId() {
+        for (int attempt = 0; attempt < 5; attempt++) {
+            String cardId = String.valueOf(ThreadLocalRandom.current().nextInt(100000, 1000000));
+            typeRegisterField(RegisterSampleFields.DBS_SAMPLE_CARD_ID, cardId);
+            actions.sleep(1500);
+            if (!normalizeText(actions.getDsmFieldTextByLabel(RegisterSampleFields.DBS_SAMPLE_CARD_ID))
+                    .contains("already been used")) {
+                System.out.println("[DBS] DBS sample card ID: " + cardId);
+                return cardId;
+            }
+        }
+        throw new AssertionError("Could not generate an unused DBS sample card ID after 5 attempts");
+    }
+
+    public void clickRegisterSample() {
+        actions.clickDsmButton("Register sample", false);
+        actions.sleep(2000);
+    }
+
+    // Confere se o modal de confirmação mostra os valores preenchidos (salvos no SampleContext)
+    public void validateSubmitConfirmationValues() {
+        String modalText = waitForOpenModal(RegisterSampleFields.SUBMIT_CONFIRMATION_MODAL, 10);
+        List<String> fields = List.of(
+                RegisterSampleFields.FARM,
+                RegisterSampleFields.PHYSIOLOGICAL_STAGE,
+                RegisterSampleFields.SAMPLE_COLLECTION_DATE,
+                RegisterSampleFields.PURPOSE_OF_ANALYSIS,
+                RegisterSampleFields.END_CUSTOMER,
+                RegisterSampleFields.END_CUSTOMER_NAME,
+                RegisterSampleFields.DBS_SAMPLE_CARD_ID);
+        String normalizedModal = normalizeText(modalText);
+        if (!normalizedModal.contains(normalizeText(SampleContext.animalType()))) {
+            throw new AssertionError("Submit confirmation does not show the species: " + SampleContext.animalType());
+        }
+        for (String field : fields) {
+            String expected = SampleContext.get(field);
+            if (expected == null) {
+                throw new AssertionError("No value was saved in SampleContext for field: " + field);
+            }
+            if (!normalizedModal.contains(normalizeText(expected))) {
+                throw new AssertionError("Submit confirmation does not show " + field + " = '" + expected
+                        + "'. Modal text: " + modalText);
+            }
+        }
+    }
+
+    public void cancelSubmitConfirmation() {
+        actions.clickDsmButton("Cancel", false);
+        waitForModalToClose(RegisterSampleFields.SUBMIT_CONFIRMATION_MODAL);
+    }
+
+    public void confirmSubmitConfirmation() {
+        waitForOpenModal(RegisterSampleFields.SUBMIT_CONFIRMATION_MODAL, 10);
+        actions.clickDsmButton("Submit", false);
+    }
+
+    public void validateSamplesRegisteredMessage() {
+        String modalText = waitForOpenModal(RegisterSampleFields.SAMPLES_REGISTERED_MODAL, 30);
+        if (!normalizeText(modalText).contains("registered successfully")) {
+            throw new AssertionError("Samples registered message was not displayed. Modal text: " + modalText);
+        }
+    }
+
+    public void closeSamplesRegisteredMessage() {
+        actions.clickDsmButton("Close", false);
+        waitForModalToClose(RegisterSampleFields.SAMPLES_REGISTERED_MODAL);
+        actions.sleep(3000);
+    }
+
+    private String waitForOpenModal(String header, int timeoutInSeconds) {
+        for (int attempt = 0; attempt < timeoutInSeconds * 2; attempt++) {
+            String text = actions.getOpenDsmModalText(header);
+            if (text != null) {
+                return text;
+            }
+            actions.sleep(500);
+        }
+        throw new AssertionError("Modal was not displayed: " + header);
+    }
+
+    private void waitForModalToClose(String header) {
+        for (int attempt = 0; attempt < 20; attempt++) {
+            if (actions.getOpenDsmModalText(header) == null) {
+                return;
+            }
+            actions.sleep(500);
+        }
+        throw new AssertionError("Modal did not close: " + header);
+    }
+
+    public String currentDate() {
+        return LocalDate.now().format(DateTimeFormatter.ofPattern(RegisterSampleFields.DATE_FORMAT));
+    }
+
+    public void typeCurrentDate(String fieldLabel) {
+        typeRegisterField(fieldLabel, currentDate());
+    }
+
+    public void validateFieldIsCurrentDate(String fieldLabel) {
+        validateFieldValue(fieldLabel, currentDate());
+    }
+
+    // Testa acima e abaixo da faixa permitida e termina com um valor válido
+    private void fillRangeField(String fieldLabel, String validValue) {
+        typeRegisterField(fieldLabel, SwineSampleDefaults.ABOVE_RANGE_VALUE);
+        validateFieldMessage(fieldLabel, SwineSampleDefaults.RANGE_MESSAGE);
+        typeRegisterField(fieldLabel, SwineSampleDefaults.BELOW_RANGE_VALUE);
+        validateFieldMessage(fieldLabel, SwineSampleDefaults.RANGE_MESSAGE);
+        typeRegisterField(fieldLabel, validValue);
+        validateFieldHasNoError(fieldLabel);
+    }
+
+    public void validateFieldValue(String fieldLabel, String expected) {
+        String value = "";
+        for (int attempt = 0; attempt < 10; attempt++) {
+            value = actions.getDsmFieldValueByLabel(fieldLabel);
+            if (value.trim().equals(expected.trim())) {
+                return;
+            }
+            actions.sleep(500);
+        }
+        throw new AssertionError("Field '" + fieldLabel + "' should be '" + expected
+                + "' but was '" + value + "'");
+    }
+
+    public void validateFieldMessage(String fieldLabel, String expectedMessage) {
+        String expected = normalizeText(expectedMessage);
+        for (int attempt = 0; attempt < 10; attempt++) {
+            if (normalizeText(actions.getDsmFieldTextByLabel(fieldLabel)).contains(expected)) {
+                return;
+            }
+            actions.sleep(500);
+        }
+        throw new AssertionError("Message '" + expectedMessage + "' was not displayed for field: "
+                + fieldLabel + ". Field text: " + actions.getDsmFieldTextByLabel(fieldLabel));
+    }
+
+    public void validateFieldHasNoError(String fieldLabel) {
+        String text = "";
+        for (int attempt = 0; attempt < 10; attempt++) {
+            text = actions.getDsmFieldTextByLabel(fieldLabel);
+            if (!text.startsWith("[invalid]")) {
+                return;
+            }
+            actions.sleep(500);
+        }
+        throw new AssertionError("Field should not show an error: " + fieldLabel + ". Field text: " + text);
+    }
+
     public void clickRegisterNext() {
         actions.clickDsmButton("Next", false);
         actions.sleep(1000);
     }
 
+    // Aceita qualquer mensagem "... is a required field" exibida no próprio campo
+    // (ex.: o campo "Average weight" exibe "Specific physiological stage is a required field")
     public void validateRequiredFieldMessage(String fieldLabel) {
-        String expected = normalizeText(fieldLabel + " is a required field");
+        String expected = "is a required field";
         for (int attempt = 0; attempt < 10; attempt++) {
             if (normalizeText(actions.getDsmFieldTextByLabel(fieldLabel)).contains(expected)) {
                 return;
@@ -294,9 +515,32 @@ public class DbsPage {
     }
 
     public void validateFieldIsNotEmpty(String fieldLabel) {
-        if (actions.getDsmInputValueByLabel(fieldLabel).isBlank()) {
+        if (actions.getDsmFieldValueByLabel(fieldLabel).isBlank()) {
             throw new AssertionError("Field should not be empty: " + fieldLabel);
         }
+    }
+
+    public void validateFieldIsEmpty(String fieldLabel) {
+        String value = actions.getDsmFieldValueByLabel(fieldLabel);
+        if (!value.isBlank()) {
+            throw new AssertionError("Field should be empty: " + fieldLabel + ". Value: " + value);
+        }
+    }
+
+    public void validateFieldIsDisabled(String fieldLabel) {
+        if (!actions.isDsmFieldDisabledByLabel(fieldLabel)) {
+            throw new AssertionError("Field should be disabled: " + fieldLabel);
+        }
+    }
+
+    public void validateFieldIsEnabled(String fieldLabel) {
+        for (int attempt = 0; attempt < 10; attempt++) {
+            if (!actions.isDsmFieldDisabledByLabel(fieldLabel)) {
+                return;
+            }
+            actions.sleep(500);
+        }
+        throw new AssertionError("Field should be enabled: " + fieldLabel);
     }
 
     public void selectFarm(String farm) {

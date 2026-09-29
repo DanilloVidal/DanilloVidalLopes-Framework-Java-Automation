@@ -25,8 +25,9 @@ import java.util.List;
 
 public class Actions extends WebActions {
 
-    // Localiza um campo DSM (dsm-select, dsm-input, dsm-radio-button-group) pelo atributo label,
-    // procurando inclusive dentro de shadow roots. Usado pelos métodos "...ByLabel".
+    // Localiza um campo DSM (dsm-select, dsm-input, dsm-radio-button-group) pelo atributo label
+    // ou, para campos sem label, pelo data-testid, procurando inclusive dentro de shadow roots.
+    // Usado pelos métodos "...ByLabel".
     private static final String FIND_FIELD_JS = """
             const normalize = (value) => String(value || '').split(' ').filter(Boolean).join(' ')
                 .trim().toLowerCase();
@@ -41,7 +42,8 @@ public class Actions extends WebActions {
             };
             const findField = (tag, label) => findElements(document, tag)
                 .filter((element) => element.getClientRects().length > 0)
-                .find((element) => normalize(element.getAttribute('label')) === normalize(label));
+                .find((element) => normalize(element.getAttribute('label')) === normalize(label)
+                    || element.getAttribute('data-testid') === label);
             const textOf = (node) => {
                 if (!node) return '';
                 if (node.nodeType === Node.TEXT_NODE) return node.nodeValue || '';
@@ -466,7 +468,8 @@ public class Actions extends WebActions {
                             element.textContent,
                             element.innerText
                         ].filter(Boolean).join(' ').trim();
-                        return element.offsetParent !== null
+                        // getClientRects também considera botões em elementos fixos (ex.: dsm-modal)
+                        return element.getClientRects().length > 0
                             && content.includes(arguments[0]);
                     });
                 if (buttons.length === 0) {
@@ -520,7 +523,7 @@ public class Actions extends WebActions {
         WebElement input = null;
         for (int attempt = 0; attempt < 20 && input == null; attempt++) {
             input = (WebElement) ((JavascriptExecutor) driver).executeScript(FIND_FIELD_JS + """
-                    const field = findField('dsm-input', arguments[0]);
+                    const field = findField('dsm-input, dsm-textarea', arguments[0]);
                     return field?.shadowRoot?.querySelector('input, textarea') || null;
                     """, label);
             if (input == null) {
@@ -532,7 +535,9 @@ public class Actions extends WebActions {
         }
         ((JavascriptExecutor) driver).executeScript(
                 "arguments[0].scrollIntoView({block: 'center'});", input);
-        input.clear();
+        // Seleciona e apaga o conteúdo atual antes de digitar, para substituir valores já preenchidos
+        input.sendKeys(org.openqa.selenium.Keys.chord(org.openqa.selenium.Keys.CONTROL, "a"),
+                org.openqa.selenium.Keys.DELETE);
         input.sendKeys(text);
     }
 
@@ -583,7 +588,7 @@ public class Actions extends WebActions {
 
     public String getDsmFieldTextByLabel(String label) {
         Object text = ((JavascriptExecutor) driver).executeScript(FIND_FIELD_JS + """
-                const field = ['dsm-select', 'dsm-input', 'dsm-radio-button-group']
+                const field = ['dsm-select', 'dsm-input', 'dsm-textarea', 'dsm-radio-button-group']
                     .map((tag) => findField(tag, arguments[0]))
                     .find(Boolean);
                 if (!field) return null;
@@ -593,6 +598,49 @@ public class Actions extends WebActions {
             throw new NoSuchElementException("DSM field was not found: " + label);
         }
         return String.valueOf(text);
+    }
+
+    public String getDsmFieldValueByLabel(String label) {
+        Object value = ((JavascriptExecutor) driver).executeScript(FIND_FIELD_JS + """
+                const input = findField('dsm-input, dsm-textarea', arguments[0]);
+                if (input) {
+                    return input.shadowRoot?.querySelector('input, textarea')?.value
+                        ?? input.getAttribute('value') ?? '';
+                }
+                const field = findField('dsm-select', arguments[0])
+                    || findField('dsm-radio-button-group', arguments[0]);
+                if (!field) return null;
+                return field.getAttribute('value') ?? field.value ?? '';
+                """, label);
+        if (value == null) {
+            throw new NoSuchElementException("DSM field was not found: " + label);
+        }
+        return String.valueOf(value);
+    }
+
+    public boolean isDsmFieldDisabledByLabel(String label) {
+        Object disabled = ((JavascriptExecutor) driver).executeScript(FIND_FIELD_JS + """
+                const field = ['dsm-select', 'dsm-input', 'dsm-radio-button-group']
+                    .map((tag) => findField(tag, arguments[0]))
+                    .find(Boolean);
+                if (!field) return null;
+                return field.hasAttribute('disabled') && field.getAttribute('disabled') !== 'false';
+                """, label);
+        if (disabled == null) {
+            throw new NoSuchElementException("DSM field was not found: " + label);
+        }
+        return Boolean.TRUE.equals(disabled);
+    }
+
+    // Retorna o texto do dsm-modal aberto com o header informado, ou null se ele não estiver aberto
+    public String getOpenDsmModalText(String header) {
+        Object text = ((JavascriptExecutor) driver).executeScript("""
+                const modal = [...document.querySelectorAll('dsm-modal')].find((element) =>
+                    element.hasAttribute('open') && element.getAttribute('open') !== 'false'
+                        && (element.getAttribute('header') || '').trim() === arguments[0].trim());
+                return modal ? (modal.innerText || modal.textContent || '') : null;
+                """, header);
+        return text == null ? null : String.valueOf(text);
     }
 
     public void clickDsmModalButton(String xpath) {
