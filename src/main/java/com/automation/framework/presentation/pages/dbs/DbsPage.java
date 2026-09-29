@@ -353,6 +353,8 @@ public class DbsPage {
             actions.sleep(1500);
             if (!normalizeText(actions.getDsmFieldTextByLabel(RegisterSampleFields.DBS_SAMPLE_CARD_ID))
                     .contains("already been used")) {
+                // Salva o card aceito (o typeRegisterField já grava, mas deixamos explícito)
+                SampleContext.put(RegisterSampleFields.DBS_SAMPLE_CARD_ID, cardId);
                 System.out.println("[DBS] DBS sample card ID: " + cardId);
                 return cardId;
             }
@@ -368,6 +370,7 @@ public class DbsPage {
     // Confere se o modal de confirmação mostra os valores preenchidos (salvos no SampleContext)
     public void validateSubmitConfirmationValues() {
         String modalText = waitForOpenModal(RegisterSampleFields.SUBMIT_CONFIRMATION_MODAL, 10);
+        System.out.println("[DBS] Sample values saved: " + SampleContext.values());
         List<String> fields = List.of(
                 RegisterSampleFields.FARM,
                 RegisterSampleFields.PHYSIOLOGICAL_STAGE,

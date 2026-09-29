@@ -32,6 +32,11 @@ public final class SampleContext {
         return fields.get().get(fieldLabel);
     }
 
+    // Atalho para o card ID gerado no cenário (usado em consultas futuras, ex.: backend)
+    public static String cardId() {
+        return get(RegisterSampleFields.DBS_SAMPLE_CARD_ID);
+    }
+
     public static Map<String, String> values() {
         return Collections.unmodifiableMap(fields.get());
     }

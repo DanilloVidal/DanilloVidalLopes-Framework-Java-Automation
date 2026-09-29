@@ -125,7 +125,7 @@ Scenario: DBS Login Page
     And I click Submit on the submit confirmation
     And the Samples registered message should be displayed
     And I click Close on the Samples registered message
-    And I should see the DBS home page
+    Then I should see the DBS home page
 
 
   Scenario: DBS Register poultry samples
