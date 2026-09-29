@@ -260,7 +260,8 @@ public class DbsPage {
     // Fluxo completo da etapa "Farm information" de swine com os valores padrão,
     // para ser encapsulado em um único step no futuro
     public void fillSwineFarmInformation() {
-        selectRegisterOption(RegisterSampleFields.CUSTOMER, SwineSampleDefaults.CUSTOMER);
+        // Customer não existe para o usuário atual da automação
+        // selectRegisterOption(RegisterSampleFields.CUSTOMER, SwineSampleDefaults.CUSTOMER);
         selectRegisterOption(RegisterSampleFields.FARM, SwineSampleDefaults.FARM);
         typeRegisterField(RegisterSampleFields.BARN_NAME, SwineSampleDefaults.BARN_NAME);
         chooseRegisterRadio(RegisterSampleFields.HOUSING, SwineSampleDefaults.HOUSING);

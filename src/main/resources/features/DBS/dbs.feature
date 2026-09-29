@@ -28,8 +28,8 @@ Scenario: DBS Login Page
   Scenario: DBS Register swine samples
     Given Im on DBS home Page
     When I click the Register "swine" samples button
-    And I select "DANONE, S.A" in the "Customer" field
-    And I select "farm test" in the "Farm" field
+   # And I select "DANONE, S.A" in the "Customer" field
+    And I select "Automation" in the "Farm" field
     And I enter "Automation Test" in the "Barn name" field
     And I choose "Outdoor" in the "Housing" option
     And I select "Farrow to finish" in the "Production system" field
