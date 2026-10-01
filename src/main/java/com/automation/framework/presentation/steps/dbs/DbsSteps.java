@@ -83,6 +83,182 @@ public class DbsSteps {
         dbsPage.selectRegisterOption(RegisterSampleFields.END_CUSTOMER, option);
     }
 
+    // Gera um número aleatório de 6 dígitos e salva no SampleContext (HOUSE_NUMBER)
+    @When("I enter a random number in the House number field")
+    public void iEnterRandomValueHouseNumber() {
+        dbsPage.typeRandomHouseNumber();
+    }
+
+    @When("I choose {string} in the Housing option")
+    public void iChooseOptionHousing(String option) {
+        dbsPage.chooseRegisterRadio(RegisterSampleFields.HOUSING, option);
+    }
+
+    // Os parênteses precisam de escape na Cucumber Expression
+    @When("I enter {string} in the Production system \\(other) field")
+    public void iEnterValueProductionSystemOther(String value) {
+        dbsPage.typeRegisterField(RegisterSampleFields.PRODUCTION_SYSTEM_OTHER, value);
+    }
+
+    // Versão encapsulada: preenche toda a etapa "Farm information" de poultry
+    // com os valores de PoultrySampleDefaults
+    @When("I fill the poultry farm information")
+    public void iFillThePoultryFarmInformation() {
+        dbsPage.fillPoultryFarmInformation();
+    }
+
+    // Animal information (poultry)
+    @When("I select {string} in the Sub-species field")
+    public void iSelectOptionSubSpecies(String option) {
+        dbsPage.selectRegisterOption(RegisterSampleFields.SUB_SPECIES, option);
+    }
+
+    @When("I select {string} in the Any challenge in the flock field")
+    public void iSelectOptionAnyChallengeInTheFlock(String option) {
+        dbsPage.selectRegisterOption(RegisterSampleFields.ANY_CHALLENGE_IN_THE_FLOCK, option);
+    }
+
+    @Then("the Any challenge in the flock field should be marked as required")
+    public void theFieldShouldBeMarkedAsRequiredAnyChallengeInTheFlock() {
+        dbsPage.validateFieldIsMarkedAsRequired(RegisterSampleFields.ANY_CHALLENGE_IN_THE_FLOCK);
+    }
+
+    @When("I enter {string} in the Clinical challenge unit field")
+    public void iEnterValueClinicalChallengeUnit(String value) {
+        dbsPage.typeRegisterField(RegisterSampleFields.CLINICAL_CHALLENGE_UNIT, value);
+    }
+
+    @When("I choose {string} in the Sex option")
+    public void iChooseOptionSex(String option) {
+        dbsPage.chooseRegisterRadio(RegisterSampleFields.SEX, option);
+    }
+
+    @When("I select {string} in the Genetic field")
+    public void iSelectOptionGenetic(String option) {
+        dbsPage.selectRegisterOption(RegisterSampleFields.GENETIC, option);
+    }
+
+    @When("I enter {string} in the Breed and strain field")
+    public void iEnterValueBreedAndStrain(String value) {
+        dbsPage.typeRegisterField(RegisterSampleFields.BREED_AND_STRAIN, value);
+    }
+
+    @When("I select {string} in the Flock performance at sampling field")
+    public void iSelectOptionFlockPerformanceAtSampling(String option) {
+        dbsPage.selectRegisterOption(RegisterSampleFields.FLOCK_PERFORMANCE_AT_SAMPLING, option);
+    }
+
+    @When("I enter {string} in the Flock performance at sample unit field")
+    public void iEnterValueFlockPerformanceAtSampleUnit(String value) {
+        dbsPage.typeRegisterField(RegisterSampleFields.FLOCK_PERFORMANCE_AT_SAMPLE_UNIT, value);
+    }
+
+    // Versão encapsulada: preenche toda a etapa "Animal information" de poultry
+    // com os valores de PoultrySampleDefaults
+    @When("I fill the poultry animal information")
+    public void iFillThePoultryAnimalInformation() {
+        dbsPage.fillPoultryAnimalInformation();
+    }
+
+    // Feed information (poultry)
+    @When("I enter {string} in the Total vitamin D3 in the diet field")
+    public void iEnterValueTotalVitaminD3InTheDiet(String value) {
+        dbsPage.typeRegisterField(RegisterSampleFields.TOTAL_VITAMIN_D3_IN_THE_DIET, value);
+    }
+
+    @When("I enter {string} in the Added 25-OH-D3 field")
+    public void iEnterValueAdded25OhD3(String value) {
+        dbsPage.typeRegisterField(RegisterSampleFields.ADDED_25_OH_D3, value);
+    }
+
+    @Then("the 25-OH-D3 field should be empty")
+    public void theFieldShouldBeEmptyVitamin25OhD3() {
+        dbsPage.validateFieldIsEmpty(RegisterSampleFields.VITAMIN_25_OH_D3);
+    }
+
+    @When("I enter {string} in the Phytase inclusion field")
+    public void iEnterValuePhytaseInclusion(String value) {
+        dbsPage.typeRegisterField(RegisterSampleFields.PHYTASE_INCLUSION, value);
+    }
+
+    @When("I select {string} in the Feeding phase field")
+    public void iSelectOptionFeedingPhase(String option) {
+        dbsPage.selectRegisterOption(RegisterSampleFields.FEEDING_PHASE, option);
+    }
+
+    @When("I enter {string} in the At what age 25-OH-D3 was included field")
+    public void iEnterValueAge25OhD3WasIncluded(String value) {
+        dbsPage.typeRegisterField(RegisterSampleFields.AGE_25_OH_D3_WAS_INCLUDED, value);
+    }
+
+    @Then("the At what age 25-OH-D3 was included field should show the message {string}")
+    public void theFieldShouldShowTheMessageAge25OhD3WasIncluded(String message) {
+        dbsPage.validateFieldMessage(RegisterSampleFields.AGE_25_OH_D3_WAS_INCLUDED, message);
+    }
+
+    @Then("the At what age 25-OH-D3 was included field should not show an error message")
+    public void theFieldShouldNotShowAnErrorAge25OhD3WasIncluded() {
+        dbsPage.validateFieldHasNoError(RegisterSampleFields.AGE_25_OH_D3_WAS_INCLUDED);
+    }
+
+    @When("I select {string} in the Type of diet field")
+    public void iSelectOptionTypeOfDiet(String option) {
+        dbsPage.selectRegisterOption(RegisterSampleFields.TYPE_OF_DIET, option);
+    }
+
+    @Then("the Type of diet specification field should show the required message")
+    public void theFieldShouldShowTheRequiredMessageTypeOfDietSpecification() {
+        dbsPage.validateRequiredFieldMessage(RegisterSampleFields.TYPE_OF_DIET_SPECIFICATION);
+    }
+
+    @When("I enter {string} in the Type of diet specification field")
+    public void iEnterValueTypeOfDietSpecification(String value) {
+        dbsPage.typeRegisterField(RegisterSampleFields.TYPE_OF_DIET_SPECIFICATION, value);
+    }
+
+    // Versão encapsulada: preenche toda a etapa "Feed information" de poultry
+    // com os valores de PoultrySampleDefaults
+    @When("I fill the poultry feed information")
+    public void iFillThePoultryFeedInformation() {
+        dbsPage.fillPoultryFeedInformation();
+    }
+
+    // Register cards (poultry)
+    @When("I enter {string} in the Sample collection date field")
+    public void iEnterValueSampleCollectionDate(String value) {
+        dbsPage.typeRegisterField(RegisterSampleFields.SAMPLE_COLLECTION_DATE, value);
+    }
+
+    // A faixa é calculada a partir da data atual (hoje - 1 mês até hoje + 1 mês)
+    @Then("the Sample collection date field should show the date range message")
+    public void theFieldShouldShowTheDateRangeMessageSampleCollectionDate() {
+        dbsPage.validateSampleCollectionDateRangeMessage();
+    }
+
+    @Then("the Verax sampling session field should show the required message")
+    public void theFieldShouldShowTheRequiredMessageVeraxSamplingSession() {
+        dbsPage.validateRequiredFieldMessage(RegisterSampleFields.VERAX_SAMPLING_SESSION);
+    }
+
+    // Os parênteses precisam de escape na Cucumber Expression
+    @When("I enter {string} in the Age \\(in days) field")
+    public void iEnterValueAgeInDays(String value) {
+        dbsPage.typeRegisterField(RegisterSampleFields.AGE_IN_DAYS, value);
+    }
+
+    // Versão encapsulada: preenche toda a etapa "Register cards" de poultry
+    // com os valores de PoultrySampleDefaults
+    @When("I fill the poultry register cards")
+    public void iFillThePoultryRegisterCards() {
+        dbsPage.fillPoultryRegisterCards();
+    }
+
+    // Versão encapsulada: confere o modal, cancela, reenvia, confirma e volta para a home
+    @When("I submit the poultry sample")
+    public void iSubmitThePoultrySample() {
+        dbsPage.submitSample();
+    }
+
     // Animal information
     @When("I select {string} in the Physiological stage field")
     public void iSelectOptionPhysiologicalStage(String option) {

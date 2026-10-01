@@ -131,6 +131,112 @@ Scenario: DBS Login Page
   Scenario: DBS Register poultry samples
     Given Im on DBS home Page
     When I click the Register "poultry" samples button
+    # Farm information
+    And I click Next on the register form
+    And the "Farm" field should show the required message
+    And the "Purpose of analysis" field should show the required message
+    And the "Is this sample for an End Customer?" field should show the required message
+   # And I select "TEST NODE" in the Customer field
+    And I select "Test Poultry" in the Farm field
+    And I enter a random number in the House number field
+    And I choose "Outdoor / Open-sided" in the Housing option
+    And I select "Other" in the Production system field
+    And I enter "Bisteca" in the Production system (other) field
+    And I select "Scientific projects" in the Purpose of analysis field
+    And I select "No" in the End Customer field
+    # Animal information
+    And I click Next on the register form
+    And I click Next on the register form
+    And the "Sub-species" field should show the required message
+    And the "Sex" field should show the required message
+    And the "Genetic" field should show the required message
+    And the "Breed and strain" field should show the required message
+    And I select "Broiler Breeders" in the Sub-species field
+    And I click Next on the register form
+    And the Any challenge in the flock field should be marked as required
+    And I select "Fertility" in the Any challenge in the flock field
+    And I enter "55" in the Clinical challenge unit field
+    And I choose "As hatched" in the Sex option
+    And I select "Cobb" in the Genetic field
+    And I enter "null" in the Breed and strain field
+    And I select "Average egg weight" in the Flock performance at sampling field
+    And I enter "88" in the Flock performance at sample unit field
+    # Feed information
+    And I click Next on the register form
+    And I click Next on the register form
+    And the "Total vitamin D3 in the diet" field should show the required message
+    And the "Added 25-OH-D3" field should show the required message
+    And the "Feeding phase (e.g. starter, grower)" field should show the required message
+    And I enter "55" in the Total vitamin D3 in the diet field
+    And the Total vitamin D3 level in the diet field should be "55"
+    And the 25-OH-D3 field should be empty
+    And I enter "7890" in the Added 25-OH-D3 field
+    And the 25-OH-D3 field should be "315600"
+    And the Total vitamin D3 level in the diet field should be "315655"
+    And I enter "77" in the Total Calcium field
+    And the Total Calcium field should show the message "Total Calcium must be less than or equal to 6"
+    And I enter "00" in the Total Calcium field
+    And the Total Calcium field should show the message "Total Calcium must be greater than or equal to 0.25"
+    And I enter "5" in the Total Calcium field
+    And the Total Calcium field should not show an error message
+    And I enter "123" in the Total Phosphorus field
+    And the Total Phosphorus field should show the message "Total Phosphorus must be less than or equal to 6"
+    And I enter "000000000000.22" in the Total Phosphorus field
+    And the Total Phosphorus field should show the message "Total Phosphorus must be greater than or equal to 0.25"
+    And I enter "0,29" in the Total Phosphorus field
+    And the Total Phosphorus field should not show an error message
+    And I enter "1231" in the Phytase inclusion field
+    And I select "FYT" in the Phytase unit field
+    And I select "Grower" in the Feeding phase field
+    And I enter "9999" in the At what age 25-OH-D3 was included field
+    And the At what age 25-OH-D3 was included field should show the message "Value must be less than or equal to 999"
+    And I enter "000" in the At what age 25-OH-D3 was included field
+    And the At what age 25-OH-D3 was included field should show the message "Value must be greater than or equal to 1"
+    And I enter "963" in the At what age 25-OH-D3 was included field
+    And the At what age 25-OH-D3 was included field should not show an error message
+    And I select "Other" in the Type of diet field
+    And I click Next on the register form
+    And the Type of diet specification field should show the required message
+    And I enter "Hakuna matata" in the Type of diet specification field
+    # Register cards
+    And I click Next on the register form
+    And I click the Register sample button
+    And the "Sample collection date" field should show the required message
+    And the Verax sampling session field should show the required message
+    And the "DBS sample card ID" field should show the required message
+    And the "Age (in days)" field should show the required message
+    And I enter "01/09/1939" in the Sample collection date field
+    And the Sample collection date field should show the date range message
+    And I enter the current date in the Sample collection date field
+    And the Sample collection date field should be the current date
+    And I choose "No" in the Verax sampling session option
+    And I enter a random card number in the DBS sample card ID field
+    And I enter "12" in the Age (in days) field
+    And I enter the following text in the Additional notes field:
+      """
+      Just a scar somewhere down inside of me
+      Something I cannot repair
+      Even though it will always be
+      I pretend it isn't there (this is how it feel)
+      I'm trapped in yesterday (just a memory)
+      Where the pain is all I know (this is all I know)
+      And I'll never break away (can't break free)
+      'Cause when I'm alone
+
+      I'm lost in these memories
+      Living behind my own illusion
+      Lost all my dignity
+      Living inside my own confusion
+      """
+    # Envio
+    And I click the Register sample button
+    And the submit confirmation should show the sample values
+    And I click Cancel on the submit confirmation
+    And I click the Register sample button
+    And I click Submit on the submit confirmation
+    And the Samples registered message should be displayed
+    And I click Close on the Samples registered message
+    Then I should see the DBS home page
 
 
   Scenario: DBS Register ruminant samples

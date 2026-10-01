@@ -37,6 +37,11 @@ public final class SampleContext {
         return get(RegisterSampleFields.DBS_SAMPLE_CARD_ID);
     }
 
+    // Atalho para o House number gerado no cenário de poultry
+    public static String houseNumber() {
+        return get(RegisterSampleFields.HOUSE_NUMBER);
+    }
+
     public static Map<String, String> values() {
         return Collections.unmodifiableMap(fields.get());
     }

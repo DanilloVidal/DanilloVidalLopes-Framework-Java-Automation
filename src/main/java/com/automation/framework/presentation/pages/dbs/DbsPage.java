@@ -3,6 +3,7 @@ import com.automation.framework.infrastructure.config.CredentialsProvider;
 import com.automation.framework.infrastructure.config.LoginCredentials;
 import com.automation.framework.infrastructure.driver.DriverFactory;
 import com.automation.framework.presentation.actions.dbs.DbsAction;
+import com.automation.framework.presentation.data.dbs.PoultrySampleDefaults;
 import com.automation.framework.presentation.data.dbs.RegisterSampleFields;
 import com.automation.framework.presentation.data.dbs.SampleContext;
 import com.automation.framework.presentation.data.dbs.SwineSampleDefaults;
@@ -16,6 +17,7 @@ import org.openqa.selenium.WebElement;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class DbsPage {
@@ -279,6 +281,113 @@ public class DbsPage {
         validateFieldIsNotEmpty(RegisterSampleFields.END_CUSTOMER_NAME);
     }
 
+    // Fluxo completo da etapa "Farm information" de poultry com os valores padrão
+    public void fillPoultryFarmInformation() {
+        clickRegisterNext();
+        validateRequiredFieldMessage(RegisterSampleFields.FARM);
+        validateRequiredFieldMessage(RegisterSampleFields.PURPOSE_OF_ANALYSIS);
+        validateRequiredFieldMessage(RegisterSampleFields.END_CUSTOMER);
+        // Customer não existe para o usuário atual da automação
+        // selectRegisterOption(RegisterSampleFields.CUSTOMER, PoultrySampleDefaults.CUSTOMER);
+        selectRegisterOption(RegisterSampleFields.FARM, PoultrySampleDefaults.FARM);
+        typeRandomHouseNumber();
+        chooseRegisterRadio(RegisterSampleFields.HOUSING, PoultrySampleDefaults.HOUSING);
+        selectRegisterOption(RegisterSampleFields.PRODUCTION_SYSTEM, PoultrySampleDefaults.PRODUCTION_SYSTEM);
+        typeRegisterField(RegisterSampleFields.PRODUCTION_SYSTEM_OTHER, PoultrySampleDefaults.PRODUCTION_SYSTEM_OTHER);
+        selectRegisterOption(RegisterSampleFields.PURPOSE_OF_ANALYSIS, PoultrySampleDefaults.PURPOSE_OF_ANALYSIS);
+        selectRegisterOption(RegisterSampleFields.END_CUSTOMER, PoultrySampleDefaults.END_CUSTOMER);
+    }
+
+    // Fluxo completo da etapa "Animal information" de poultry com os valores padrão
+    public void fillPoultryAnimalInformation() {
+        clickRegisterNext();
+        validateRequiredFieldMessage(RegisterSampleFields.SUB_SPECIES);
+        validateRequiredFieldMessage(RegisterSampleFields.SEX);
+        validateRequiredFieldMessage(RegisterSampleFields.GENETIC);
+        validateRequiredFieldMessage(RegisterSampleFields.BREED_AND_STRAIN);
+        selectRegisterOption(RegisterSampleFields.SUB_SPECIES, PoultrySampleDefaults.SUB_SPECIES);
+        clickRegisterNext();
+        validateFieldIsMarkedAsRequired(RegisterSampleFields.ANY_CHALLENGE_IN_THE_FLOCK);
+        selectRegisterOption(RegisterSampleFields.ANY_CHALLENGE_IN_THE_FLOCK,
+                PoultrySampleDefaults.ANY_CHALLENGE_IN_THE_FLOCK);
+        typeRegisterField(RegisterSampleFields.CLINICAL_CHALLENGE_UNIT, PoultrySampleDefaults.CLINICAL_CHALLENGE_UNIT);
+        chooseRegisterRadio(RegisterSampleFields.SEX, PoultrySampleDefaults.SEX);
+        selectRegisterOption(RegisterSampleFields.GENETIC, PoultrySampleDefaults.GENETIC);
+        typeRegisterField(RegisterSampleFields.BREED_AND_STRAIN, PoultrySampleDefaults.BREED_AND_STRAIN);
+        selectRegisterOption(RegisterSampleFields.FLOCK_PERFORMANCE_AT_SAMPLING,
+                PoultrySampleDefaults.FLOCK_PERFORMANCE_AT_SAMPLING);
+        typeRegisterField(RegisterSampleFields.FLOCK_PERFORMANCE_AT_SAMPLE_UNIT,
+                PoultrySampleDefaults.FLOCK_PERFORMANCE_AT_SAMPLE_UNIT);
+    }
+
+    // Fluxo completo da etapa "Feed information" de poultry com os valores padrão
+    public void fillPoultryFeedInformation() {
+        clickRegisterNext();
+        validateRequiredFieldMessage(RegisterSampleFields.TOTAL_VITAMIN_D3_IN_THE_DIET);
+        validateRequiredFieldMessage(RegisterSampleFields.ADDED_25_OH_D3);
+        validateRequiredFieldMessage(RegisterSampleFields.FEEDING_PHASE);
+
+        typeRegisterField(RegisterSampleFields.TOTAL_VITAMIN_D3_IN_THE_DIET,
+                PoultrySampleDefaults.TOTAL_VITAMIN_D3_IN_THE_DIET);
+        validateFieldValue(RegisterSampleFields.TOTAL_VITAMIN_D3_IN_DIET,
+                PoultrySampleDefaults.TOTAL_VITAMIN_D3_IN_THE_DIET);
+        validateFieldIsEmpty(RegisterSampleFields.VITAMIN_25_OH_D3);
+        typeRegisterField(RegisterSampleFields.ADDED_25_OH_D3, PoultrySampleDefaults.ADDED_25_OH_D3);
+        validateFieldValue(RegisterSampleFields.VITAMIN_25_OH_D3, PoultrySampleDefaults.EXPECTED_VITAMIN_25_OH_D3);
+        validateFieldValue(RegisterSampleFields.TOTAL_VITAMIN_D3_IN_DIET,
+                PoultrySampleDefaults.EXPECTED_TOTAL_VITAMIN_D3_IN_DIET);
+
+        fillRangeField(RegisterSampleFields.TOTAL_CALCIUM,
+                PoultrySampleDefaults.CALCIUM_ABOVE_RANGE, PoultrySampleDefaults.CALCIUM_MAX_MESSAGE,
+                PoultrySampleDefaults.CALCIUM_BELOW_RANGE, PoultrySampleDefaults.CALCIUM_MIN_MESSAGE,
+                PoultrySampleDefaults.TOTAL_CALCIUM);
+        fillRangeField(RegisterSampleFields.TOTAL_PHOSPHORUS,
+                PoultrySampleDefaults.PHOSPHORUS_ABOVE_RANGE, PoultrySampleDefaults.PHOSPHORUS_MAX_MESSAGE,
+                PoultrySampleDefaults.PHOSPHORUS_BELOW_RANGE, PoultrySampleDefaults.PHOSPHORUS_MIN_MESSAGE,
+                PoultrySampleDefaults.TOTAL_PHOSPHORUS);
+
+        typeRegisterField(RegisterSampleFields.PHYTASE_INCLUSION, PoultrySampleDefaults.PHYTASE_INCLUSION);
+        selectRegisterOption(RegisterSampleFields.PHYTASE_UNIT, PoultrySampleDefaults.PHYTASE_UNIT);
+        selectRegisterOption(RegisterSampleFields.FEEDING_PHASE, PoultrySampleDefaults.FEEDING_PHASE);
+
+        fillRangeField(RegisterSampleFields.AGE_25_OH_D3_WAS_INCLUDED,
+                PoultrySampleDefaults.AGE_ABOVE_RANGE, PoultrySampleDefaults.AGE_MAX_MESSAGE,
+                PoultrySampleDefaults.AGE_BELOW_RANGE, PoultrySampleDefaults.AGE_MIN_MESSAGE,
+                PoultrySampleDefaults.AGE_25_OH_D3_WAS_INCLUDED);
+
+        selectRegisterOption(RegisterSampleFields.TYPE_OF_DIET, PoultrySampleDefaults.TYPE_OF_DIET);
+        clickRegisterNext();
+        validateRequiredFieldMessage(RegisterSampleFields.TYPE_OF_DIET_SPECIFICATION);
+        typeRegisterField(RegisterSampleFields.TYPE_OF_DIET_SPECIFICATION,
+                PoultrySampleDefaults.TYPE_OF_DIET_SPECIFICATION);
+    }
+
+    // Testa acima e abaixo da faixa (cada um com sua mensagem) e termina com um valor válido
+    private void fillRangeField(String fieldLabel, String aboveValue, String aboveMessage,
+                                String belowValue, String belowMessage, String validValue) {
+        typeRegisterField(fieldLabel, aboveValue);
+        validateFieldMessage(fieldLabel, aboveMessage);
+        typeRegisterField(fieldLabel, belowValue);
+        validateFieldMessage(fieldLabel, belowMessage);
+        typeRegisterField(fieldLabel, validValue);
+        validateFieldHasNoError(fieldLabel);
+    }
+
+    // Para campos cuja mensagem de erro não segue o padrão "... is a required field"
+    // (ex.: "Any challenge in the flock?" exibe só a própria pergunta), valida o estado inválido do campo
+    public void validateFieldIsMarkedAsRequired(String fieldLabel) {
+        String text = "";
+        for (int attempt = 0; attempt < 10; attempt++) {
+            text = actions.getDsmFieldTextByLabel(fieldLabel);
+            if (text.startsWith("[invalid]")) {
+                return;
+            }
+            actions.sleep(500);
+        }
+        throw new AssertionError("Field should be marked as required (invalid): " + fieldLabel
+                + ". Field text: " + text);
+    }
+
     // Fluxo completo da etapa "Animal information" de swine com os valores padrão
     public void fillSwineAnimalInformation() {
         selectRegisterOption(RegisterSampleFields.PHYSIOLOGICAL_STAGE, SwineSampleDefaults.PHYSIOLOGICAL_STAGE);
@@ -332,6 +441,38 @@ public class DbsPage {
         typeRegisterField(RegisterSampleFields.ADDITIONAL_NOTES, SwineSampleDefaults.ADDITIONAL_NOTES);
     }
 
+    // Fluxo da etapa "Register cards" de poultry com os valores padrão
+    public void fillPoultryRegisterCards() {
+        clickRegisterSample();
+        validateRequiredFieldMessage(RegisterSampleFields.SAMPLE_COLLECTION_DATE);
+        validateRequiredFieldMessage(RegisterSampleFields.VERAX_SAMPLING_SESSION);
+        validateRequiredFieldMessage(RegisterSampleFields.DBS_SAMPLE_CARD_ID);
+        validateRequiredFieldMessage(RegisterSampleFields.AGE_IN_DAYS);
+        typeRegisterField(RegisterSampleFields.SAMPLE_COLLECTION_DATE, PoultrySampleDefaults.OUT_OF_RANGE_COLLECTION_DATE);
+        validateSampleCollectionDateRangeMessage();
+        typeCurrentDate(RegisterSampleFields.SAMPLE_COLLECTION_DATE);
+        validateFieldIsCurrentDate(RegisterSampleFields.SAMPLE_COLLECTION_DATE);
+        chooseRegisterRadio(RegisterSampleFields.VERAX_SAMPLING_SESSION, PoultrySampleDefaults.VERAX_SAMPLING_SESSION);
+        typeRandomCardId();
+        typeRegisterField(RegisterSampleFields.AGE_IN_DAYS, PoultrySampleDefaults.AGE_IN_DAYS);
+        typeRegisterField(RegisterSampleFields.ADDITIONAL_NOTES, PoultrySampleDefaults.ADDITIONAL_NOTES);
+    }
+
+    // A tela aceita datas entre hoje - 1 mês e hoje + 1 mês.
+    // Ex. (hoje = 30/09/2026): "Collection date must be between Aug 30, 2026 and Oct 30, 2026 (DD/MM/YYYY)"
+    public void validateSampleCollectionDateRangeMessage() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH);
+        LocalDate today = LocalDate.now();
+        String expected = "Collection date must be between " + today.minusMonths(1).format(formatter)
+                + " and " + today.plusMonths(1).format(formatter);
+        validateFieldMessage(RegisterSampleFields.SAMPLE_COLLECTION_DATE, expected);
+    }
+
+    // Envia a sample: confere o modal, cancela, reenvia, confirma e volta para a home
+    public void submitSample() {
+        submitSwineSample();
+    }
+
     // Envia a sample: confere o modal, cancela, reenvia e confirma
     public void submitSwineSample() {
         clickRegisterSample();
@@ -348,7 +489,7 @@ public class DbsPage {
     // O valor fica salvo no SampleContext (RegisterSampleFields.DBS_SAMPLE_CARD_ID) para consultas futuras.
     public String typeRandomCardId() {
         for (int attempt = 0; attempt < 5; attempt++) {
-            String cardId = String.valueOf(ThreadLocalRandom.current().nextInt(100000, 1000000));
+            String cardId = randomNumber(6);
             typeRegisterField(RegisterSampleFields.DBS_SAMPLE_CARD_ID, cardId);
             actions.sleep(1500);
             if (!normalizeText(actions.getDsmFieldTextByLabel(RegisterSampleFields.DBS_SAMPLE_CARD_ID))
@@ -362,6 +503,23 @@ public class DbsPage {
         throw new AssertionError("Could not generate an unused DBS sample card ID after 5 attempts");
     }
 
+    // Número aleatório com a quantidade de dígitos informada (sem zero à esquerda)
+    public String randomNumber(int digits) {
+        int min = (int) Math.pow(10, digits - 1);
+        int max = (int) Math.pow(10, digits);
+        return String.valueOf(ThreadLocalRandom.current().nextInt(min, max));
+    }
+
+    // Gera um House number aleatório de 6 dígitos e salva no SampleContext
+    // (RegisterSampleFields.HOUSE_NUMBER) para validar na confirmação
+    public String typeRandomHouseNumber() {
+        String houseNumber = randomNumber(6);
+        typeRegisterField(RegisterSampleFields.HOUSE_NUMBER, houseNumber);
+        SampleContext.put(RegisterSampleFields.HOUSE_NUMBER, houseNumber);
+        System.out.println("[DBS] House number: " + houseNumber);
+        return houseNumber;
+    }
+
     public void clickRegisterSample() {
         actions.clickDsmButton("Register sample", false);
         actions.sleep(2000);
@@ -371,27 +529,41 @@ public class DbsPage {
     public void validateSubmitConfirmationValues() {
         String modalText = waitForOpenModal(RegisterSampleFields.SUBMIT_CONFIRMATION_MODAL, 10);
         System.out.println("[DBS] Sample values saved: " + SampleContext.values());
-        List<String> fields = List.of(
+        // Campos exibidos no modal em todas as samples
+        List<String> requiredFields = List.of(
                 RegisterSampleFields.FARM,
-                RegisterSampleFields.PHYSIOLOGICAL_STAGE,
                 RegisterSampleFields.SAMPLE_COLLECTION_DATE,
                 RegisterSampleFields.PURPOSE_OF_ANALYSIS,
                 RegisterSampleFields.END_CUSTOMER,
-                RegisterSampleFields.END_CUSTOMER_NAME,
                 RegisterSampleFields.DBS_SAMPLE_CARD_ID);
+        // Campos que dependem do animal (swine: Physiological stage / poultry: Sub-species)
+        // ou do fluxo (End Customer name só existe quando End Customer = Yes)
+        List<String> optionalFields = List.of(
+                RegisterSampleFields.PHYSIOLOGICAL_STAGE,
+                RegisterSampleFields.SUB_SPECIES,
+                RegisterSampleFields.END_CUSTOMER_NAME);
         String normalizedModal = normalizeText(modalText);
         if (!normalizedModal.contains(normalizeText(SampleContext.animalType()))) {
             throw new AssertionError("Submit confirmation does not show the species: " + SampleContext.animalType());
         }
-        for (String field : fields) {
-            String expected = SampleContext.get(field);
-            if (expected == null) {
+        for (String field : requiredFields) {
+            if (SampleContext.get(field) == null) {
                 throw new AssertionError("No value was saved in SampleContext for field: " + field);
             }
-            if (!normalizedModal.contains(normalizeText(expected))) {
-                throw new AssertionError("Submit confirmation does not show " + field + " = '" + expected
-                        + "'. Modal text: " + modalText);
+            validateModalShowsValue(normalizedModal, modalText, field);
+        }
+        for (String field : optionalFields) {
+            if (SampleContext.get(field) != null) {
+                validateModalShowsValue(normalizedModal, modalText, field);
             }
+        }
+    }
+
+    private void validateModalShowsValue(String normalizedModal, String modalText, String field) {
+        String expected = SampleContext.get(field);
+        if (!normalizedModal.contains(normalizeText(expected))) {
+            throw new AssertionError("Submit confirmation does not show " + field + " = '" + expected
+                    + "'. Modal text: " + modalText);
         }
     }
 
