@@ -107,6 +107,113 @@ public class DbsSteps {
         dbsPage.fillPoultryFarmInformation();
     }
 
+    // Farm information (ruminant)
+    // Gera um número aleatório de 6 dígitos e salva no SampleContext (PEN_BARN_ID).
+    // A "/" precisa de escape na Cucumber Expression (sem escape ela vira alternativa "Pen" ou "Barn")
+    @When("I enter a random number in the Pen\\/Barn ID field")
+    public void iEnterRandomValuePenBarnId() {
+        dbsPage.typeRandomPenBarnId();
+    }
+
+    // Versão encapsulada: preenche toda a etapa "Farm information" de ruminant
+    // com os valores de RuminantSampleDefaults
+    @When("I fill the ruminant farm information")
+    public void iFillTheRuminantFarmInformation() {
+        dbsPage.fillRuminantFarmInformation();
+    }
+
+    // Animal information (ruminant)
+    @When("I select {string} in the Breeds field")
+    public void iSelectOptionBreeds(String option) {
+        dbsPage.selectRegisterOption(RegisterSampleFields.BREEDS, option);
+    }
+
+    @When("I select {string} in the Animal category field")
+    public void iSelectOptionAnimalCategory(String option) {
+        dbsPage.selectRegisterOption(RegisterSampleFields.ANIMAL_CATEGORY, option);
+    }
+
+    // Sorteia um valor de 1 a 10 e salva no SampleContext (NUMBER_OF_LACTATIONS)
+    @When("I select a random value in the Number of lactations field")
+    public void iSelectRandomValueNumberOfLactations() {
+        dbsPage.selectRandomNumberOfLactations();
+    }
+
+    @Then("the Problem area of interest field should be marked as required")
+    public void theFieldShouldBeMarkedAsRequiredProblemAreaOfInterest() {
+        dbsPage.validateFieldIsMarkedAsRequired(RegisterSampleFields.PROBLEM_AREA_OF_INTEREST);
+    }
+
+    @When("I select {string} in the Problem area of interest field")
+    public void iSelectOptionProblemAreaOfInterest(String option) {
+        dbsPage.selectRegisterOption(RegisterSampleFields.PROBLEM_AREA_OF_INTEREST, option);
+    }
+
+    // A "/" precisa de escape na Cucumber Expression
+    @When("I select {string} in the Clinical\\/Production challenges field")
+    public void iSelectOptionClinicalProductionChallenges(String option) {
+        dbsPage.selectRegisterOption(RegisterSampleFields.CLINICAL_PRODUCTION_CHALLENGES, option);
+    }
+
+    // Feed information (ruminant) - Feed details é um multi select com checkbox
+    @When("I select all options in the Feed details field")
+    public void iSelectAllOptionsFeedDetails() {
+        dbsPage.selectAllMultiSelectOptions(RegisterSampleFields.FEED_DETAILS);
+    }
+
+    @When("I unselect all options in the Feed details field")
+    public void iUnselectAllOptionsFeedDetails() {
+        dbsPage.unselectAllMultiSelectOptions(RegisterSampleFields.FEED_DETAILS);
+    }
+
+    // Marca e desmarca cada opção, uma por vez, tirando print de cada estado
+    @When("I check and uncheck each option of the Feed details field one by one")
+    public void iCheckEachOptionOneByOneFeedDetails() {
+        dbsPage.checkEachMultiSelectOptionOneByOne(RegisterSampleFields.FEED_DETAILS);
+    }
+
+    @When("I enter {string} in the Active 25-OH D3 level field")
+    public void iEnterValueActive25OhD3Level(String value) {
+        dbsPage.typeRegisterField(RegisterSampleFields.ACTIVE_25_OH_D3_LEVEL, value);
+    }
+
+    @Then("the Vitamin D3 equivalence field should be {string}")
+    public void theFieldValueShouldBeVitaminD3Equivalence(String expected) {
+        dbsPage.validateFieldValue(RegisterSampleFields.VITAMIN_D3_EQUIVALENCE, expected);
+    }
+
+    @Then("the Vitamin D3 equivalence field should be empty")
+    public void theFieldShouldBeEmptyVitaminD3Equivalence() {
+        dbsPage.validateFieldIsEmpty(RegisterSampleFields.VITAMIN_D3_EQUIVALENCE);
+    }
+
+    @When("I select {string} in the Vitamin D3 unit field")
+    public void iSelectOptionVitaminD3Unit(String option) {
+        dbsPage.selectRegisterOption(RegisterSampleFields.VITAMIN_D3_UNIT, option);
+    }
+
+    // Versões encapsuladas do ruminant (valores de RuminantSampleDefaults)
+    @When("I fill the ruminant animal information")
+    public void iFillTheRuminantAnimalInformation() {
+        dbsPage.fillRuminantAnimalInformation();
+    }
+
+    @When("I fill the ruminant feed information")
+    public void iFillTheRuminantFeedInformation() {
+        dbsPage.fillRuminantFeedInformation();
+    }
+
+    @When("I fill the ruminant register cards")
+    public void iFillTheRuminantRegisterCards() {
+        dbsPage.fillRuminantRegisterCards();
+    }
+
+    // No ruminant não existe o modal de confirmação: registra direto e valida a mensagem de sucesso
+    @When("I submit the ruminant sample")
+    public void iSubmitTheRuminantSample() {
+        dbsPage.submitRuminantSample();
+    }
+
     // Animal information (poultry)
     @When("I select {string} in the Sub-species field")
     public void iSelectOptionSubSpecies(String option) {

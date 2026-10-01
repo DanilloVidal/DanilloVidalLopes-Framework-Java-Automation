@@ -242,3 +242,94 @@ Scenario: DBS Login Page
   Scenario: DBS Register ruminant samples
     Given Im on DBS home Page
     When I click the Register "ruminant" samples button
+    # Farm information
+    And I click Next on the register form
+    And the "Farm" field should show the required message
+    And the "Housing" field should show the required message
+    And the "Purpose of analysis" field should show the required message
+    And the "Is this sample for an End Customer?" field should show the required message
+    And I select "Ruminant Farm Test edited" in the Farm field
+    And I enter a random number in the Pen/Barn ID field
+    And I choose "Mixed" in the Housing option
+    And I select "Global survey" in the Purpose of analysis field
+    And I select "Yes" in the End Customer field
+    And I click Next on the register form
+    And the "End Customer name" field should show the required message
+    And I enter "Automation Test" in the "End Customer name" field
+    And the "End Customer name" field should not be empty
+    # Animal information
+    And I click Next on the register form
+    And I click Next on the register form
+    And the "Sub-species" field should show the required message
+    And the "Sex" field should show the required message
+    And I select "Dairy cow" in the Sub-species field
+    And I click Next on the register form
+    And the "Animal category" field should show the required message
+    And I select "Holstein" in the Breeds field
+    And I select "Lactating cow" in the Animal category field
+    And I choose "Female" in the Sex option
+    And I select a random value in the Number of lactations field
+    And I click Next on the register form
+    And the Problem area of interest field should be marked as required
+    And I select "Nutrition" in the Problem area of interest field
+    And I select "Ca/P metabolism" in the Clinical/Production challenges field
+    # Feed information
+    And I click Next on the register form
+    And I select all options in the Feed details field
+    And I unselect all options in the Feed details field
+    And I check and uncheck each option of the Feed details field one by one
+    And I select all options in the Feed details field
+    And I click Next on the register form
+    And the "Vitamin D3" field should show the required message
+    And the "Active 25-OH D3 level" field should show the required message
+    And I enter "22" in the Vitamin D3 field
+    And the Total vitamin D3 level in the diet field should be "22"
+    And the Vitamin D3 equivalence field should be empty
+    And I enter "1992" in the Active 25-OH D3 level field
+    And the Vitamin D3 equivalence field should be "79680000"
+    And the Total vitamin D3 level in the diet field should be "79680022"
+    And I select "IU/kg total feed" in the Vitamin D3 unit field
+    And I enter "2024" in the Total Calcium field
+    And the Total Calcium field should not show an error message
+    And I enter "1988" in the Total Phosphorus field
+    And the Total Phosphorus field should not show an error message
+    # Register cards
+    And I click Next on the register form
+    And I click the Register sample button
+    And the "Sample collection date" field should show the required message
+    And the "DBS sample card ID" field should show the required message
+    And I enter "02/09/1945" in the Sample collection date field
+    And the Sample collection date field should show the date range message
+    And I enter the current date in the Sample collection date field
+    And the Sample collection date field should be the current date
+    And I enter a random card number in the DBS sample card ID field
+    And I enter "Test Test" in the Animal details field
+    And I enter the following text in the Additional notes field:
+      """
+      (When this began) I had nothing to say
+      And I'd get lost in the nothingness inside of me
+      (I was confused) and I let it all out to find
+      That I'm not the only person with these things in mind
+
+      (Inside of me) but all the vacancy the words revealed
+      Is the only real thing that I've got left to feel
+      (Nothing to lose) just stuck, hollow and alone
+      And the fault is my own, and the fault is my own
+
+      I wanna heal, I wanna feel
+      What I thought was never real
+      I wanna let go of the pain I've held so long
+      (Erase all the pain till it's gone)
+
+      I wanna heal, I wanna feel
+      Like I'm close to something real
+      I wanna find something I've wanted all along
+      Somewhere I belong
+
+      And I've got nothing to say
+      """
+    # Envio (no ruminant não existe o modal de confirmação: o registro é feito direto)
+    And I click the Register sample button
+    And the Samples registered message should be displayed
+    And I click Close on the Samples registered message
+    Then I should see the DBS home page

@@ -26,6 +26,12 @@ public class CucumberStepListener implements EventListener {
     }
 // ---------------------------------------------
 
+    // Pasta de evidência do cenário em execução (null se não houver cenário ativo)
+    public static java.nio.file.Path currentEvidenceFolder() {
+        PdfEvidenceManager manager = evidenceManagerContext.get();
+        return manager == null ? null : manager.getReportPath();
+    }
+
     @Override
     public void setEventPublisher(EventPublisher publisher) {
         publisher.registerHandlerFor(TestCaseStarted.class, this::handleTestCaseStarted);

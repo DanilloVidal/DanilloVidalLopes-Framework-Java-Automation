@@ -5,6 +5,7 @@ import com.automation.framework.infrastructure.driver.DriverFactory;
 import com.automation.framework.presentation.actions.dbs.DbsAction;
 import com.automation.framework.presentation.data.dbs.PoultrySampleDefaults;
 import com.automation.framework.presentation.data.dbs.RegisterSampleFields;
+import com.automation.framework.presentation.data.dbs.RuminantSampleDefaults;
 import com.automation.framework.presentation.data.dbs.SampleContext;
 import com.automation.framework.presentation.data.dbs.SwineSampleDefaults;
 import org.openqa.selenium.By;
@@ -298,6 +299,188 @@ public class DbsPage {
         selectRegisterOption(RegisterSampleFields.END_CUSTOMER, PoultrySampleDefaults.END_CUSTOMER);
     }
 
+    // Fluxo completo da etapa "Farm information" de ruminant com os valores padrão
+    public void fillRuminantFarmInformation() {
+        clickRegisterNext();
+        validateRequiredFieldMessage(RegisterSampleFields.FARM);
+        validateRequiredFieldMessage(RegisterSampleFields.HOUSING);
+        validateRequiredFieldMessage(RegisterSampleFields.PURPOSE_OF_ANALYSIS);
+        validateRequiredFieldMessage(RegisterSampleFields.END_CUSTOMER);
+        selectRegisterOption(RegisterSampleFields.FARM, RuminantSampleDefaults.FARM);
+        typeRandomPenBarnId();
+        chooseRegisterRadio(RegisterSampleFields.HOUSING, RuminantSampleDefaults.HOUSING);
+        selectRegisterOption(RegisterSampleFields.PURPOSE_OF_ANALYSIS, RuminantSampleDefaults.PURPOSE_OF_ANALYSIS);
+        selectRegisterOption(RegisterSampleFields.END_CUSTOMER, RuminantSampleDefaults.END_CUSTOMER);
+        clickRegisterNext();
+        validateRequiredFieldMessage(RegisterSampleFields.END_CUSTOMER_NAME);
+        typeRegisterField(RegisterSampleFields.END_CUSTOMER_NAME, RuminantSampleDefaults.END_CUSTOMER_NAME);
+        validateFieldIsNotEmpty(RegisterSampleFields.END_CUSTOMER_NAME);
+    }
+
+    // ---------------------------------------------------------------------
+    // Feed details (multi select com checkbox)
+    // Cada ação abre a lista, clica e fecha clicando fora, como um usuário faria
+    // ---------------------------------------------------------------------
+
+    // "Select all" funciona como liga/desliga: só clica se ainda houver opção desmarcada
+    public void selectAllMultiSelectOptions(String fieldLabel) {
+        if (!allMultiSelectOptionsAre(fieldLabel, true)) {
+            actions.clickMultiSelectOption(fieldLabel, "Select all");
+        }
+        if (!allMultiSelectOptionsAre(fieldLabel, true)) {
+            // Com seleção parcial o primeiro clique pode ter limpado tudo: clica de novo para marcar todas
+            actions.clickMultiSelectOption(fieldLabel, "Select all");
+        }
+        validateAllMultiSelectOptions(fieldLabel, true);
+        actions.closeMultiSelect(fieldLabel);
+        SampleContext.put(fieldLabel, actions.getMultiSelectSelectedText(fieldLabel));
+        logMultiSelectState(fieldLabel, "Select all");
+    }
+
+    // Só clica se houver alguma opção marcada; com seleção parcial, marca todas e depois desmarca
+    public void unselectAllMultiSelectOptions(String fieldLabel) {
+        if (!allMultiSelectOptionsAre(fieldLabel, false)) {
+            if (!allMultiSelectOptionsAre(fieldLabel, true)) {
+                actions.clickMultiSelectOption(fieldLabel, "Select all");
+            }
+            if (!allMultiSelectOptionsAre(fieldLabel, false)) {
+                actions.clickMultiSelectOption(fieldLabel, "Select all");
+            }
+        }
+        validateAllMultiSelectOptions(fieldLabel, false);
+        actions.closeMultiSelect(fieldLabel);
+        SampleContext.put(fieldLabel, actions.getMultiSelectSelectedText(fieldLabel));
+        logMultiSelectState(fieldLabel, "Unselect all");
+    }
+
+    // Marca uma opção por vez (abre, marca, fecha, tira print) e desmarca em seguida
+    public void checkEachMultiSelectOptionOneByOne(String fieldLabel) {
+        List<String> options = actions.getMultiSelectOptions(fieldLabel);
+        actions.closeMultiSelect(fieldLabel);
+        for (String option : options) {
+            actions.clickMultiSelectOption(fieldLabel, option);
+            validateMultiSelectOption(fieldLabel, option, true);
+            actions.closeMultiSelect(fieldLabel);
+            logMultiSelectState(fieldLabel, "Checked " + option);
+
+            actions.clickMultiSelectOption(fieldLabel, option);
+            validateMultiSelectOption(fieldLabel, option, false);
+            actions.closeMultiSelect(fieldLabel);
+            logMultiSelectState(fieldLabel, "Unchecked " + option);
+        }
+    }
+
+    private void validateMultiSelectOption(String fieldLabel, String option, boolean expectedSelected) {
+        if (actions.isMultiSelectOptionSelected(fieldLabel, option) != expectedSelected) {
+            throw new AssertionError("Option '" + option + "' in '" + fieldLabel + "' should be "
+                    + (expectedSelected ? "selected" : "unselected"));
+        }
+    }
+
+    private boolean allMultiSelectOptionsAre(String fieldLabel, boolean selected) {
+        for (String option : actions.getMultiSelectOptions(fieldLabel)) {
+            if (actions.isMultiSelectOptionSelected(fieldLabel, option) != selected) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void validateAllMultiSelectOptions(String fieldLabel, boolean expectedSelected) {
+        for (String option : actions.getMultiSelectOptions(fieldLabel)) {
+            validateMultiSelectOption(fieldLabel, option, expectedSelected);
+        }
+    }
+
+    // Registra no log o que ficou selecionado e salva um print na pasta de evidência do cenário
+    private void logMultiSelectState(String fieldLabel, String action) {
+        String selected = actions.getMultiSelectSelectedText(fieldLabel);
+        System.out.println("[DBS] " + fieldLabel + " | " + action + " | selected: "
+                + (selected.isBlank() ? "(none)" : selected));
+        java.nio.file.Path folder =
+                com.automation.framework.infrastructure.report.CucumberStepListener.currentEvidenceFolder();
+        if (folder != null) {
+            String fileName = (fieldLabel + "_" + action).replaceAll("[^a-zA-Z0-9]+", "_") + ".png";
+            actions.takeScreenshotAsFile(folder.resolve(fileName).toString());
+        }
+    }
+
+    // Sorteia um Number of lactations de 1 a 10 e salva no SampleContext
+    // (RegisterSampleFields.NUMBER_OF_LACTATIONS) para uso futuro
+    public String selectRandomNumberOfLactations() {
+        String lactations = String.valueOf(ThreadLocalRandom.current().nextInt(1, 11));
+        selectRegisterOption(RegisterSampleFields.NUMBER_OF_LACTATIONS, lactations);
+        System.out.println("[DBS] Number of lactations: " + lactations);
+        return lactations;
+    }
+
+    // Fluxo completo da etapa "Animal information" de ruminant com os valores padrão
+    public void fillRuminantAnimalInformation() {
+        clickRegisterNext();
+        validateRequiredFieldMessage(RegisterSampleFields.SUB_SPECIES);
+        validateRequiredFieldMessage(RegisterSampleFields.SEX);
+        selectRegisterOption(RegisterSampleFields.SUB_SPECIES, RuminantSampleDefaults.SUB_SPECIES);
+        clickRegisterNext();
+        validateRequiredFieldMessage(RegisterSampleFields.ANIMAL_CATEGORY);
+        selectRegisterOption(RegisterSampleFields.BREEDS, RuminantSampleDefaults.BREEDS);
+        selectRegisterOption(RegisterSampleFields.ANIMAL_CATEGORY, RuminantSampleDefaults.ANIMAL_CATEGORY);
+        chooseRegisterRadio(RegisterSampleFields.SEX, RuminantSampleDefaults.SEX);
+        selectRandomNumberOfLactations();
+        clickRegisterNext();
+        validateFieldIsMarkedAsRequired(RegisterSampleFields.PROBLEM_AREA_OF_INTEREST);
+        selectRegisterOption(RegisterSampleFields.PROBLEM_AREA_OF_INTEREST,
+                RuminantSampleDefaults.PROBLEM_AREA_OF_INTEREST);
+        selectRegisterOption(RegisterSampleFields.CLINICAL_PRODUCTION_CHALLENGES,
+                RuminantSampleDefaults.CLINICAL_PRODUCTION_CHALLENGES);
+    }
+
+    // Fluxo completo da etapa "Feed information" de ruminant com os valores padrão
+    public void fillRuminantFeedInformation() {
+        selectAllMultiSelectOptions(RegisterSampleFields.FEED_DETAILS);
+        unselectAllMultiSelectOptions(RegisterSampleFields.FEED_DETAILS);
+        checkEachMultiSelectOptionOneByOne(RegisterSampleFields.FEED_DETAILS);
+        selectAllMultiSelectOptions(RegisterSampleFields.FEED_DETAILS);
+        clickRegisterNext();
+        validateRequiredFieldMessage(RegisterSampleFields.VITAMIN_D3);
+        validateRequiredFieldMessage(RegisterSampleFields.ACTIVE_25_OH_D3_LEVEL);
+        typeRegisterField(RegisterSampleFields.VITAMIN_D3, RuminantSampleDefaults.VITAMIN_D3);
+        validateFieldValue(RegisterSampleFields.TOTAL_VITAMIN_D3_IN_DIET, RuminantSampleDefaults.VITAMIN_D3);
+        validateFieldIsEmpty(RegisterSampleFields.VITAMIN_D3_EQUIVALENCE);
+        typeRegisterField(RegisterSampleFields.ACTIVE_25_OH_D3_LEVEL, RuminantSampleDefaults.ACTIVE_25_OH_D3_LEVEL);
+        validateFieldValue(RegisterSampleFields.VITAMIN_D3_EQUIVALENCE,
+                RuminantSampleDefaults.EXPECTED_VITAMIN_D3_EQUIVALENCE);
+        validateFieldValue(RegisterSampleFields.TOTAL_VITAMIN_D3_IN_DIET,
+                RuminantSampleDefaults.EXPECTED_TOTAL_VITAMIN_D3_IN_DIET);
+        selectRegisterOption(RegisterSampleFields.VITAMIN_D3_UNIT, RuminantSampleDefaults.VITAMIN_D3_UNIT);
+        typeRegisterField(RegisterSampleFields.TOTAL_CALCIUM, RuminantSampleDefaults.TOTAL_CALCIUM);
+        validateFieldHasNoError(RegisterSampleFields.TOTAL_CALCIUM);
+        typeRegisterField(RegisterSampleFields.TOTAL_PHOSPHORUS, RuminantSampleDefaults.TOTAL_PHOSPHORUS);
+        validateFieldHasNoError(RegisterSampleFields.TOTAL_PHOSPHORUS);
+    }
+
+    // Fluxo da etapa "Register cards" de ruminant com os valores padrão
+    public void fillRuminantRegisterCards() {
+        clickRegisterSample();
+        validateRequiredFieldMessage(RegisterSampleFields.SAMPLE_COLLECTION_DATE);
+        validateRequiredFieldMessage(RegisterSampleFields.DBS_SAMPLE_CARD_ID);
+        typeRegisterField(RegisterSampleFields.SAMPLE_COLLECTION_DATE, RuminantSampleDefaults.OUT_OF_RANGE_COLLECTION_DATE);
+        validateSampleCollectionDateRangeMessage();
+        typeCurrentDate(RegisterSampleFields.SAMPLE_COLLECTION_DATE);
+        validateFieldIsCurrentDate(RegisterSampleFields.SAMPLE_COLLECTION_DATE);
+        typeRandomCardId();
+        typeRegisterField(RegisterSampleFields.ANIMAL_DETAILS, RuminantSampleDefaults.ANIMAL_DETAILS);
+        typeRegisterField(RegisterSampleFields.ADDITIONAL_NOTES, RuminantSampleDefaults.ADDITIONAL_NOTES);
+    }
+
+    // Gera um Pen/Barn ID aleatório de 6 dígitos e salva no SampleContext (RegisterSampleFields.PEN_BARN_ID)
+    public String typeRandomPenBarnId() {
+        String penBarnId = randomNumber(6);
+        typeRegisterField(RegisterSampleFields.PEN_BARN_ID, penBarnId);
+        SampleContext.put(RegisterSampleFields.PEN_BARN_ID, penBarnId);
+        System.out.println("[DBS] Pen/Barn ID: " + penBarnId);
+        return penBarnId;
+    }
+
     // Fluxo completo da etapa "Animal information" de poultry com os valores padrão
     public void fillPoultryAnimalInformation() {
         clickRegisterNext();
@@ -471,6 +654,14 @@ public class DbsPage {
     // Envia a sample: confere o modal, cancela, reenvia, confirma e volta para a home
     public void submitSample() {
         submitSwineSample();
+    }
+
+    // No ruminant não existe o modal de confirmação: o Register sample já registra a sample
+    public void submitRuminantSample() {
+        clickRegisterSample();
+        validateSamplesRegisteredMessage();
+        closeSamplesRegisteredMessage();
+        validateHomePage();
     }
 
     // Envia a sample: confere o modal, cancela, reenvia e confirma

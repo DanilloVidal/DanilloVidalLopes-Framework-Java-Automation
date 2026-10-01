@@ -7,6 +7,7 @@ public final class RegisterSampleFields {
     public static final String FARM = "Farm";
     public static final String BARN_NAME = "Barn name";
     public static final String HOUSE_NUMBER = "House number";
+    public static final String PEN_BARN_ID = "Pen/Barn ID";
     public static final String HOUSING = "Housing";
     public static final String PRODUCTION_SYSTEM = "Production system";
     public static final String PRODUCTION_SYSTEM_OTHER = "Production system (other)";
@@ -23,6 +24,20 @@ public final class RegisterSampleFields {
     public static final String SEX = "Sex";
     public static final String GENETICS_SUPPLIER = "Genetics supplier";
     public static final String GENETICS_LINE = "Genetics line";
+
+    // Animal information (ruminant)
+    public static final String BREEDS = "Breeds";
+    public static final String ANIMAL_CATEGORY = "Animal category";
+    public static final String NUMBER_OF_LACTATIONS = "Number of lactations";
+    public static final String PROBLEM_AREA_OF_INTEREST = "Problem area of interest";
+    public static final String CLINICAL_PRODUCTION_CHALLENGES = "Clinical/Production challenges";
+
+    // Feed information (ruminant)
+    public static final String FEED_DETAILS = "Feed details";
+    // O select de unidade do Vitamin D3 não tem label na tela, por isso usa o data-testid
+    public static final String VITAMIN_D3_UNIT = "select-d3Unit";
+    public static final String ACTIVE_25_OH_D3_LEVEL = "Active 25-OH D3 level";
+    public static final String VITAMIN_D3_EQUIVALENCE = "Vitamin D3 equivalence";
 
     // Animal information (poultry)
     public static final String SUB_SPECIES = "Sub-species";

@@ -42,6 +42,16 @@ public final class SampleContext {
         return get(RegisterSampleFields.HOUSE_NUMBER);
     }
 
+    // Atalho para o Pen/Barn ID gerado no cenário de ruminant
+    public static String penBarnId() {
+        return get(RegisterSampleFields.PEN_BARN_ID);
+    }
+
+    // Atalho para o Number of lactations sorteado no cenário de ruminant
+    public static String numberOfLactations() {
+        return get(RegisterSampleFields.NUMBER_OF_LACTATIONS);
+    }
+
     public static Map<String, String> values() {
         return Collections.unmodifiableMap(fields.get());
     }
