@@ -127,7 +127,7 @@ public class Actions extends WebActions {
         List<WebElement> matches = findElements(
                 By.cssSelector("button, a, [role='button']"))
                 .stream()
-                .filter(WebElement::isDisplayed)
+                .filter(element -> element.isDisplayed())
                 .filter(element -> {
                     String visibleText = element.getText();
                     String accessibleName = element.getAttribute("aria-label");
@@ -339,7 +339,7 @@ public class Actions extends WebActions {
         click(triggerLocator);
         List<WebElement> options = findElements(optionsLocator);
         WebElement option = options.stream()
-                .filter(WebElement::isDisplayed)
+                .filter(element -> element.isDisplayed())
                 .filter(element -> element.getText().trim().equals(visibleText.trim()))
                 .findFirst()
                 .orElseThrow(() -> new NoSuchElementException(

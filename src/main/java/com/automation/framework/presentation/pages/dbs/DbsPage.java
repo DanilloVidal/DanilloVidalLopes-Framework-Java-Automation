@@ -56,8 +56,6 @@ public class DbsPage {
     private final By activeHomeLink = By.cssSelector("a[aria-current='page'][href='/']");
     private final By homeHeading = By.xpath(
             "//*[self::h1 or self::h2 or self::h3][contains(normalize-space(), 'SciTell') and contains(normalize-space(), 'DBS Analytics')]");
-    private final By orderNewKitButton = By.xpath(
-            "/html/body/div[1]/main/dsm-grid/div[1]/div[1]/div[2]/div/dsm-button[1]//button");
 
     public DbsPage(WebDriver driver) {
         this.driver = driver;
@@ -176,7 +174,7 @@ public class DbsPage {
 
     private boolean isCookieButtonVisible() {
         return driver.findElements(acceptCookiesByText).stream()
-                .anyMatch(WebElement::isDisplayed);
+                .anyMatch(element -> element.isDisplayed());
     }
 
     private boolean forceCloseCookieOverlay() {
