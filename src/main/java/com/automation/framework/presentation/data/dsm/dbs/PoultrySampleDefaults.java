@@ -1,4 +1,4 @@
-package com.automation.framework.presentation.data.dbs;
+package com.automation.framework.presentation.data.dsm.dbs;
 
 // Valores padrão usados para registrar uma sample de poultry
 public final class PoultrySampleDefaults {

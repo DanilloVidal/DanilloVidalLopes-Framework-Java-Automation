@@ -1,4 +1,4 @@
-package com.automation.framework.presentation.data.dbs;
+package com.automation.framework.presentation.data.dsm.dbs;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;

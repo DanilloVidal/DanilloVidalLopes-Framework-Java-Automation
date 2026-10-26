@@ -456,6 +456,46 @@ public class Actions extends WebActions {
     }
 
     // ---------------------------------------------------------------------
+    // Helpers genéricos para testes de segurança: texto visível da página e alerts JS
+    // ---------------------------------------------------------------------
+
+    // Texto visível da página inteira, atravessando shadow DOM.
+    // Usado para procurar vazamento de erro (SQL/stacktrace) ou um payload refletido sem escape.
+    public String getVisiblePageText() {
+        Object text = ((JavascriptExecutor) driver).executeScript("""
+                const roots = [document];
+                let text = '';
+                while (roots.length) {
+                    const root = roots.pop();
+                    text += ' ' + (root.body?.innerText || root.textContent || '');
+                    for (const element of root.querySelectorAll('*')) {
+                        if (element.shadowRoot) roots.push(element.shadowRoot);
+                    }
+                }
+                return text;
+                """);
+        return text == null ? "" : String.valueOf(text);
+    }
+
+    // Há um alert() JavaScript aberto? É o indício de que um payload de XSS foi executado.
+    public boolean isJsAlertPresent() {
+        try {
+            driver.switchTo().alert();
+            return true;
+        } catch (org.openqa.selenium.NoAlertPresentException exception) {
+            return false;
+        }
+    }
+
+    // Fecha um alert JS, se houver, para o teste poder continuar após detectá-lo
+    public void dismissJsAlertIfPresent() {
+        try {
+            driver.switchTo().alert().dismiss();
+        } catch (org.openqa.selenium.NoAlertPresentException ignored) {
+        }
+    }
+
+    // ---------------------------------------------------------------------
     // Componentes DSM (dsm-button, dsm-select, dsm-input, dsm-radio-button-group, dsm-modal)
     // ---------------------------------------------------------------------
 
@@ -668,6 +708,122 @@ public class Actions extends WebActions {
         }
         throw new AssertionError(
                 "The button was not clickable in the visible DSM modal: " + xpath);
+    }
+
+    // ---------------------------------------------------------------------
+    // Componentes React Aria (Select, ComboBox de busca, Checkbox)
+    // O trigger do Select é um <button aria-haspopup="listbox"> e as opções ficam num
+    // [role=listbox] separado, cujo id está no aria-controls do botão.
+    // ---------------------------------------------------------------------
+
+    public void selectReactAriaOption(By trigger, String option) {
+        String available = "";
+        for (int attempt = 0; attempt < 3; attempt++) {
+            closeReactAriaPopovers();
+            WebElement button = new WebDriverWait(driver, Duration.ofSeconds(20))
+                    .until(ExpectedConditions.elementToBeClickable(trigger));
+            scrollToCenter(button);
+            click(button);
+            List<WebElement> options = waitForReactAriaOptions(button);
+            WebElement match = options.stream()
+                    .filter(element -> normalize(element.getText()).equals(normalize(option)))
+                    .findFirst()
+                    .orElse(null);
+            if (match != null) {
+                scrollToCenter(match);
+                click(match);
+                sleep(500);
+                return;
+            }
+            available = options.stream().map(element -> element.getText()).toList().toString();
+            sleep(1000);
+        }
+        closeReactAriaPopovers();
+        throw new NoSuchElementException(
+                "React Aria option '" + option + "' was not found. Available: " + available);
+    }
+
+    public List<String> getReactAriaOptions(By trigger) {
+        closeReactAriaPopovers();
+        WebElement button = new WebDriverWait(driver, Duration.ofSeconds(20))
+                .until(ExpectedConditions.elementToBeClickable(trigger));
+        scrollToCenter(button);
+        click(button);
+        List<String> options = waitForReactAriaOptions(button).stream()
+                .map(element -> element.getText().trim())
+                .filter(text -> !text.equals("Select"))
+                .toList();
+        closeReactAriaPopovers();
+        return options;
+    }
+
+    public String getReactAriaSelectedText(By trigger) {
+        return findElement(trigger).getText().trim();
+    }
+
+    public boolean isReactAriaFieldEnabled(By trigger) {
+        List<WebElement> buttons = driver.findElements(trigger);
+        return !buttons.isEmpty() && buttons.get(0).isEnabled()
+                && buttons.get(0).findElements(By.xpath(
+                        "./ancestor::*[@data-disabled][1]")).isEmpty();
+    }
+
+    // ComboBox com busca e múltipla seleção (ex.: "Type to search…"): digita e escolhe a opção
+    public void chooseReactAriaSearchOption(By input, String option) {
+        WebElement field = new WebDriverWait(driver, Duration.ofSeconds(20))
+                .until(ExpectedConditions.elementToBeClickable(input));
+        scrollToCenter(field);
+        click(field);
+        field.sendKeys(org.openqa.selenium.Keys.chord(org.openqa.selenium.Keys.CONTROL, "a"),
+                org.openqa.selenium.Keys.DELETE);
+        field.sendKeys(option);
+        WebElement match = new WebDriverWait(driver, Duration.ofSeconds(10)).until(d -> {
+            List<WebElement> options = reactAriaOptionsOf(field);
+            return options.stream()
+                    .filter(element -> normalize(element.getText()).equals(normalize(option)))
+                    .findFirst()
+                    .orElse(null);
+        });
+        click(match);
+        sleep(500);
+        closeReactAriaPopovers();
+    }
+
+    // Fecha listbox/popover aberto (o React Aria fecha com Escape)
+    public void closeReactAriaPopovers() {
+        for (int attempt = 0; attempt < 3
+                && !driver.findElements(By.cssSelector("[role='listbox']")).isEmpty(); attempt++) {
+            interactionActions.sendKeys(org.openqa.selenium.Keys.ESCAPE).perform();
+            sleep(300);
+        }
+    }
+
+    private List<WebElement> waitForReactAriaOptions(WebElement trigger) {
+        return new WebDriverWait(driver, Duration.ofSeconds(15)).until(d -> {
+            List<WebElement> options = reactAriaOptionsOf(trigger);
+            return options.isEmpty() ? null : options;
+        });
+    }
+
+    private List<WebElement> reactAriaOptionsOf(WebElement trigger) {
+        String listboxId = trigger.getAttribute("aria-controls");
+        if (listboxId == null || listboxId.isBlank()) {
+            return List.of();
+        }
+        return driver.findElements(By.cssSelector(
+                "[id='" + listboxId + "'] [role='option']"));
+    }
+
+    // "instant" ignora o scroll-behavior: smooth do CSS; o React Aria cancela o clique
+    // (press) se a página ainda estiver rolando quando ele acontece
+    private void scrollToCenter(WebElement element) {
+        ((JavascriptExecutor) driver).executeScript(
+                "arguments[0].scrollIntoView({block: 'center', behavior: 'instant'});", element);
+        sleep(300);
+    }
+
+    private static String normalize(String value) {
+        return value == null ? "" : value.replaceAll("\\s+", " ").trim().toLowerCase();
     }
 
     private boolean isDownloadComplete(Path directory, String fileName) {

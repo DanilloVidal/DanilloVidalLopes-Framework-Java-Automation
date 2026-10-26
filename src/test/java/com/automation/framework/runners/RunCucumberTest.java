@@ -9,7 +9,7 @@ import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
 
 @Suite
 @IncludeEngines("cucumber")
-@SelectClasspathResource("features/DBS")
+@SelectClasspathResource("features/DSM")
 @ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.automation.framework.presentation.steps")
 public class RunCucumberTest {
 }

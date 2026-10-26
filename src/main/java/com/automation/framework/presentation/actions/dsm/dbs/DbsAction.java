@@ -1,4 +1,4 @@
-package com.automation.framework.presentation.actions.dbs;
+package com.automation.framework.presentation.actions.dsm.dbs;
 
 import com.automation.framework.presentation.actions.Actions;
 import org.openqa.selenium.JavascriptExecutor;

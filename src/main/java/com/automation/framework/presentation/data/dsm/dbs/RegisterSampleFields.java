@@ -1,4 +1,4 @@
-package com.automation.framework.presentation.data.dbs;
+package com.automation.framework.presentation.data.dsm.dbs;
 
 // Labels dos campos do formulário "Register samples", exatamente como aparecem na tela
 public final class RegisterSampleFields {
