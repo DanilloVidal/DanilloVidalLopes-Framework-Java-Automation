@@ -61,6 +61,46 @@ public class PigmentationPage {
         actions.sleep(3000);
     }
 
+    // --- Helpers usados pelos testes de segurança (PenTest) ----------------------------------
+
+    // URL base do app, para os testes montarem rotas internas (ex.: baseUrl() + "simulation")
+    public String baseUrl() {
+        return PIGMENTATION_URL;
+    }
+
+    public String host() {
+        return PIGMENTATION_HOST;
+    }
+
+    // Arquivo estático do próprio host: abre a origem sem disparar o redirect para a Microsoft,
+    // ponto em que dá para ler/limpar o localStorage/sessionStorage da origem do app
+    public String sameOriginStaticUrl() {
+        return SAME_ORIGIN_STATIC_URL;
+    }
+
+    public void refreshPage() {
+        driver.navigate().refresh();
+        actions.sleep(3000);
+    }
+
+    public boolean isOnMicrosoftLogin() {
+        return driver.getCurrentUrl().contains(MICROSOFT_LOGIN_HOST);
+    }
+
+    // Conteúdo autenticado do Pigmentation: estamos na origem do app (fora do callback e do login
+    // da Microsoft) e alguma tela logada está renderizada (home ou a calculadora).
+    // Checagem rápida (sem espera), usada pelos testes de segurança.
+    public boolean isAuthenticated() {
+        String url = driver.getCurrentUrl();
+        if (url.contains(MICROSOFT_LOGIN_HOST) || !url.contains(PIGMENTATION_HOST)
+                || url.contains(AUTH_CALLBACK_PATH)) {
+            return false;
+        }
+        return !driver.findElements(startCalculatorButton).isEmpty()
+                || !driver.findElements(simulationDetailsTitle).isEmpty()
+                || !driver.findElements(customerNameInput).isEmpty();
+    }
+
     public void validateMicrosoftLoginPage() {
         actions.waitForVisible(microsoftEmailInput, Duration.ofSeconds(30));
         if (!driver.getCurrentUrl().contains(MICROSOFT_LOGIN_HOST)) {
@@ -75,7 +115,12 @@ public class PigmentationPage {
     }
 
     public void doPigmentationLogin(String username, String password) {
-        validateMicrosoftLoginPage();
+        // Se o SSO corporativo ainda está válido, a Microsoft devolve direto para o app sem mostrar
+        // o formulário de e-mail. Nesse caso não há login a digitar — o app já voltou autenticado.
+        if (!waitForMicrosoftEmailFormOrApp()) {
+            waitForMicrosoftLoginToFinish();
+            return;
+        }
         actions.sendKeys(microsoftEmailInput, username);
         actions.click(microsoftSubmitButton);
 
@@ -86,6 +131,25 @@ public class PigmentationPage {
         actions.click(microsoftSubmitButton);
         actions.sleep(3000);
         waitForMicrosoftLoginToFinish();
+    }
+
+    // Espera o formulário de e-mail da Microsoft aparecer.
+    // Retorna false se, em vez disso, o SSO já devolveu para o app (sessão corporativa ainda válida);
+    // retorna true quando o campo de e-mail está pronto para o login manual.
+    // Se nenhum dos dois acontecer no tempo, delega a validateMicrosoftLoginPage para o erro informativo.
+    private boolean waitForMicrosoftEmailFormOrApp() {
+        for (int second = 0; second < 30; second++) {
+            String url = driver.getCurrentUrl();
+            if (url.contains(PIGMENTATION_HOST) && !url.contains(AUTH_CALLBACK_PATH)) {
+                return false;
+            }
+            if (url.contains(MICROSOFT_LOGIN_HOST) && actions.isDisplayed(microsoftEmailInput)) {
+                return true;
+            }
+            actions.sleep(1000);
+        }
+        validateMicrosoftLoginPage();
+        return true;
     }
 
     // Fica na Microsoft até sair para o site: espera a aprovação do MFA no Authenticator

@@ -1,5 +1,6 @@
 package com.automation.framework.presentation.pages.dsm.analyticalservices;
 
+import com.automation.framework.infrastructure.api.BrowserSession;
 import com.automation.framework.infrastructure.config.CredentialsProvider;
 import com.automation.framework.infrastructure.config.LoginCredentials;
 import com.automation.framework.presentation.actions.dsm.analyticalservices.AnalyticalServicesAction;
@@ -8,6 +9,7 @@ import com.automation.framework.presentation.data.dsm.analyticalservices.CreateS
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 
@@ -19,9 +21,22 @@ public class AnalyticalServicesPage {
     private static final String LOGIN_PATH = "/login";
     private static final String MICROSOFT_LOGIN_HOST = "login.microsoftonline.com";
 
-    // Botão "Entrar com conta DSM" da tela de login do site
+    // Provisório: sessão (cookies + storage) salva depois do login para pular o login da Microsoft
+    // nas próximas execuções. Fica fora do git (.auth/ no .gitignore) porque contém os tokens.
+    private static final Path SESSION_FILE =
+            Path.of(System.getProperty("user.dir"), ".auth", "analyticalservices-session.json");
+    private static final int MFA_APPROVAL_TIMEOUT_SECONDS = 180;
+    // Tela "Continuar conectado?": "Sim" (idSIButton9) grava o cookie persistente que vai na sessão salva
+    private final By microsoftStaySignedInText = By.id("KmsiDescription");
+    // MFA: número que precisa ser aprovado no Microsoft Authenticator
+    private final By microsoftMfaNumber = By.id("idRichContext_DisplaySign");
+
+    // Botão da tela de login do site que leva ao SSO corporativo.
+    // A tela foi redesenhada: hoje é "Continuar com Microsoft" (antes "Entrar com conta DSM");
+    // o locator cobre os dois textos e funciona em pt/en.
     private final By dsmAccountLoginButton = By.xpath(
-            "//button[contains(normalize-space(.), 'DSM')] | //a[contains(normalize-space(.), 'DSM')]");
+            "//button[contains(normalize-space(.), 'Microsoft')] | //a[contains(normalize-space(.), 'Microsoft')]"
+            + " | //button[contains(normalize-space(.), 'DSM')] | //a[contains(normalize-space(.), 'DSM')]");
 
     // Login corporativo da Microsoft (o site redireciona para ele)
     private final By microsoftEmailInput = By.name("loginfmt");
@@ -251,5 +266,150 @@ public class AnalyticalServicesPage {
             throw new AssertionError("Analytes from other laboratories should be disabled: "
                     + enabledFromOtherLabs);
         }
+    }
+
+    // ---------------------------------------------------------------------
+    // Helpers e login com reuso de sessão para os testes de segurança (PenTest)
+    // ---------------------------------------------------------------------
+
+    public String baseUrl() {
+        return "https://" + ANALYTICAL_SERVICES_HOST + "/";
+    }
+
+    public String host() {
+        return ANALYTICAL_SERVICES_HOST;
+    }
+
+    // Tela de login do próprio app (mesma origem, não redireciona sozinha para a Microsoft):
+    // é onde dá para ler/limpar o storage da origem do app
+    public String loginUrl() {
+        return ANALYTICAL_SERVICES_URL;
+    }
+
+    public void refreshPage() {
+        driver.navigate().refresh();
+        actions.sleep(3000);
+    }
+
+    public boolean isOnMicrosoftLogin() {
+        return driver.getCurrentUrl().contains(MICROSOFT_LOGIN_HOST);
+    }
+
+    // true quando a tela de login do app está visível (botão "conta DSM" ou URL em /login)
+    public boolean isLoginPageVisible() {
+        return !driver.findElements(dsmAccountLoginButton).isEmpty()
+                || driver.getCurrentUrl().contains(LOGIN_PATH);
+    }
+
+    // Conteúdo autenticado: na origem do app, fora da tela de login e com a barra de navegação logada.
+    // Checagem rápida (sem espera), usada pelos testes de segurança.
+    public boolean isAuthenticated() {
+        String url = driver.getCurrentUrl();
+        if (url.contains(MICROSOFT_LOGIN_HOST) || !url.contains(ANALYTICAL_SERVICES_HOST)
+                || url.contains(LOGIN_PATH)) {
+            return false;
+        }
+        return actions.isDisplayed(languageTrigger);
+    }
+
+    // Login reaproveitando a sessão salva; se não existir ou tiver expirado,
+    // faz o login completo na Microsoft e salva a sessão nova para as próximas execuções
+    public void doAnalyticalServicesLoginReusingSession() {
+        if (loginWithSavedSession()) {
+            return;
+        }
+        BrowserSession.deleteSession(SESSION_FILE);
+        navigateToAnalyticalServices();
+        clickDsmAccountLogin();
+        doMicrosoftLoginWithMfa();
+        validateHomePage();
+        saveLoginSession();
+    }
+
+    // Retorna true se a sessão salva levou direto para a home
+    public boolean loginWithSavedSession() {
+        driver.get(loginUrl());
+        if (!BrowserSession.restoreSession(driver, SESSION_FILE)) {
+            System.out.println("[AnalyticalServices] No saved session at " + SESSION_FILE);
+            return false;
+        }
+        driver.get(baseUrl());
+        for (int attempt = 0; attempt < 30; attempt++) {
+            String url = driver.getCurrentUrl();
+            if (url.contains(LOGIN_PATH) || actions.isDisplayed(dsmAccountLoginButton)) {
+                System.out.println("[AnalyticalServices] Saved session expired, doing a full login");
+                return false;
+            }
+            if (url.contains(ANALYTICAL_SERVICES_HOST) && !url.contains(LOGIN_PATH)
+                    && actions.isDisplayed(languageTrigger)) {
+                System.out.println("[AnalyticalServices] Logged in with the saved session");
+                return true;
+            }
+            actions.sleep(1000);
+        }
+        return false;
+    }
+
+    // Precisa ser chamado com o app aberto (home), para pegar o storage da origem certa
+    public void saveLoginSession() {
+        BrowserSession.saveSession(driver, SESSION_FILE);
+        System.out.println("[AnalyticalServices] Session saved to " + SESSION_FILE);
+    }
+
+    // Login na Microsoft tolerante a SSO já válido e à aprovação do MFA (Authenticator, no celular).
+    // Responde "Sim" no "Continuar conectado?" para persistir a sessão e permitir o reuso.
+    private void doMicrosoftLoginWithMfa() {
+        LoginCredentials credentials = CredentialsProvider.analyticalServices();
+        if (!waitForMicrosoftEmailFormOrApp()) {
+            waitForMicrosoftLoginToFinish();
+            return;
+        }
+        actions.sendKeys(microsoftEmailInput, credentials.username());
+        actions.click(microsoftSubmitButton);
+        actions.waitForVisible(microsoftPasswordInput, Duration.ofSeconds(30));
+        actions.sleep(1000);
+        actions.sendKeys(microsoftPasswordInput, credentials.password());
+        actions.click(microsoftSubmitButton);
+        actions.sleep(3000);
+        waitForMicrosoftLoginToFinish();
+    }
+
+    // Espera o formulário de e-mail da Microsoft; retorna false se o SSO já devolveu para o app
+    private boolean waitForMicrosoftEmailFormOrApp() {
+        for (int second = 0; second < 30; second++) {
+            String url = driver.getCurrentUrl();
+            if (url.contains(ANALYTICAL_SERVICES_HOST) && !url.contains(LOGIN_PATH)) {
+                return false;
+            }
+            if (url.contains(MICROSOFT_LOGIN_HOST) && actions.isDisplayed(microsoftEmailInput)) {
+                return true;
+            }
+            actions.sleep(1000);
+        }
+        validateMicrosoftLoginPage();
+        return true;
+    }
+
+    // Fica na Microsoft até sair para o site: espera a aprovação do MFA e responde "Sim" no KMSI
+    private void waitForMicrosoftLoginToFinish() {
+        boolean mfaLogged = false;
+        for (int second = 0; second < MFA_APPROVAL_TIMEOUT_SECONDS; second++) {
+            if (!driver.getCurrentUrl().contains(MICROSOFT_LOGIN_HOST)) {
+                return;
+            }
+            if (actions.isDisplayed(microsoftStaySignedInText)) {
+                actions.click(microsoftSubmitButton);
+                actions.sleep(2000);
+                continue;
+            }
+            if (!mfaLogged && actions.isDisplayed(microsoftMfaNumber)) {
+                System.out.println("[AnalyticalServices] Approve the sign-in in Microsoft Authenticator. Number: "
+                        + actions.getText(microsoftMfaNumber));
+                mfaLogged = true;
+            }
+            actions.sleep(1000);
+        }
+        throw new AssertionError("Microsoft login did not finish in " + MFA_APPROVAL_TIMEOUT_SECONDS
+                + "s (MFA not approved?). Current URL: " + driver.getCurrentUrl());
     }
 }
